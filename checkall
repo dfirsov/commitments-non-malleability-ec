@@ -1,0 +1,32 @@
+#!/bin/bash
+
+timeout=35
+
+check() {
+  echo checking $1;
+  if easycrypt -I . -timeout $timeout $1 2>/dev/null;
+  then echo passed: $1;
+       echo "";
+  else echo failed: $1;
+       echo "";
+       echo "skipping remaining scripts";
+  exit 1;
+  fi;
+}
+
+# list of files to check
+check CNM_unsat.ec
+check NSNM_Definition.ec
+check NSNM_Pure_Binding.ec
+check NSNM_Pure_Hiding.ec
+check CommitmentUnpredictability.ec
+check LRO.ec
+check ConstComm.ec
+check NSNM_Related.ec
+check NSNM_ROM_Construction.ec
+## auxillary definitions
+check WholeMsg.ec
+check D1D2.ec
+check HelperFuns.ec
+
+echo "DONE";
