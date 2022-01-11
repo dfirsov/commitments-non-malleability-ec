@@ -59,8 +59,9 @@ Contents
   lemma cresc_const_comm formalizes Lemma 3 from Sec. 3.3.
   lemma arita_const_comm formalizes Lemma 4 from Sec. 3.3.
 
-
 * WholeMsg.ec, D1D2.ec, HelperFuns.ec - auxiliary formalization of
   basic functions and definitions.
 
+* ROM.ec - the implementation of Random Oracles found in the EasyCrypt's
+  standard library.
 

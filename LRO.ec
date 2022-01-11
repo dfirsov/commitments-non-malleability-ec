@@ -2,72 +2,20 @@ pragma Goals:printall.
 require import AllCore Distr.
 require import HelperFuns.
 
-type in_t, out_t, dup_t, hit_t.
+
+
+
+type in_t, out_t, dup_t, hit_t, d_in_t.
 op dout: out_t distr.
 
-module type POracle = {
-  proc o(x : in_t): out_t
-}.
 
-type d_in_t.
-module type Distinguisher (H : POracle) = {
-  proc run(_ : d_in_t): out_t
-}.
+require ROM.
 
+clone export ROM as RM with type in_t <- in_t,
+                            type out_t <- out_t,
+                            type d_in_t <- d_in_t,
+                            op dout <- (fun x => dout).
 
-module type Oracle = {
-  proc init()      : unit
-  proc o(x : in_t) : out_t
-}.
-
-
-theory Lazy.
-require import SmtMap.
-
-module LRO : Oracle = {
-  var m : (in_t, out_t) fmap
-
-  proc init() = {
-    m <- empty;
-  }
-
-  proc o(x : in_t) = {
-    var r;
-
-    r <$ dout;
-    if (x \notin m) {
-      m.[x] <- r;
-    }
-    return oget m.[x];
-  }
-}.
-
-end Lazy.
-
-abstract theory ListLog.
-require import Int List.
-
-op qH : int.
-
-module Log (O : Oracle) = {
-  var qs : in_t list
-
-  proc init(): unit = {
-          O.init();
-    qs <- [];
-  }
-
-  proc o(x : in_t): out_t = {
-    var r;
-
-    r  <@ O.o(x);
-    qs <- x :: qs;
-    return r;
-  }
-}.
-
-
-end ListLog.
 
 
 abstract theory ROM_BadCall.
@@ -401,7 +349,7 @@ smt.
   hoare. progress. smt. wp. rnd. skip. auto.
    move=> c. proc.  inline *. sp.
   wp. 
- rnd.  skip. timeout 20. smt.
+ rnd.  skip. timeout 20. progress. smt. smt.  smt. smt.
 qed.
 
 

@@ -37,12 +37,12 @@ axiom dout_distr_ll : is_lossless dout_distr.
 
 clone import LRO as R with type out_t <- commitment,
                            type in_t  <- openingkey * message,
-                           type d_in_t <- advice,
                            type dup_t <- advice,
                            type hit_t <- (openingkey * message) * commitment,
+                           type d_in_t <- advice,
                            op   dout  <- dout_distr.                              
 
-import R.Lazy.
+import R.RM.Lazy.
 
 
 
