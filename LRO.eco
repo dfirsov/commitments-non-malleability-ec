@@ -1,0 +1,84 @@
+{
+  "version": 2,
+  "echash": "b9c76857753141848129e5029c7921eae83bda06",
+  "root": { "kind": "ec", "digest": "cd4ebe7f07098c241e12dd4d15b5dc4d" },
+  "depends": {
+    "AlgTactic": {
+      "kind": "ec",
+      "digest": "edb42e07f87872e62531561166316174"
+    },
+    "AllCore": { "kind": "ec", "digest": "06842e7d9991f294a4d1b55af93852dc" },
+    "Bigalg": { "kind": "ec", "digest": "a18c19bba227238650a84ea78a377562" },
+    "Bigop": { "kind": "eca", "digest": "b01c4bf4dfdf733c775270918cd3040f" },
+    "Binomial": {
+      "kind": "ec",
+      "digest": "4a0531fc3737267d8a71a365e34b0e0c"
+    },
+    "Bool": { "kind": "ec", "digest": "4fa579a0028b75aaa1ca6b80a3c750ab" },
+    "Core": { "kind": "ec", "digest": "0838d65285a3a979c30d242f39a0265e" },
+    "CoreInt": { "kind": "ec", "digest": "58457bdfd0a13bf3630641d76ddce83b" },
+    "CoreMap": { "kind": "ec", "digest": "c48036d66c0da989cbe6073abf43abaa" },
+    "CoreReal": {
+      "kind": "ec",
+      "digest": "94750e5587949b4774f26fd87ab8f6d1"
+    },
+    "Dexcepted": {
+      "kind": "ec",
+      "digest": "b0fe27f64d2c8d6013d66544b7ab5f8a"
+    },
+    "Dfilter": { "kind": "ec", "digest": "2373e7f452182c5bb3d0a60041975934" },
+    "Discrete": {
+      "kind": "ec",
+      "digest": "ace47eba5e63e8217da7784bc23a8c85"
+    },
+    "Distr": { "kind": "ec", "digest": "db9a2138f2f44f77725747afd618f870" },
+    "FSet": { "kind": "ec", "digest": "0dba6b7bcc290ab8a18c68306035e1a6" },
+    "FelTactic": {
+      "kind": "ec",
+      "digest": "2c6f8a1f32ec0a4eb3baae7a804180c1"
+    },
+    "FinType": { "kind": "ec", "digest": "822b158b7b1a31fb1060c32cb4627358" },
+    "Finite": { "kind": "ec", "digest": "a724ee84002495591e241a1e8209d0f0" },
+    "HelperFuns": {
+      "kind": "ec",
+      "digest": "403745800c81465e497871068ab8fa91"
+    },
+    "Int": { "kind": "ec", "digest": "45737b85ecce53f6fefe0f3788e335b7" },
+    "IntDiv": { "kind": "ec", "digest": "2a6027e9d1ae3c9f4870072d5bab8b1e" },
+    "IntMin": { "kind": "ec", "digest": "0c35d8088a5cfffac271625eb6bfba42" },
+    "IterProc": {
+      "kind": "eca",
+      "digest": "a82bce1532beb3b6c31f146df8ec935c"
+    },
+    "List": { "kind": "ec", "digest": "1d74cc7c17ec7a08a3f015f728b1bc67" },
+    "Logic": { "kind": "ec", "digest": "83f7f6d3d7f13b0f26448fa9db444f1c" },
+    "Monoid": { "kind": "eca", "digest": "b555475243c7dea89d1ce4b4d5285b76" },
+    "Number": { "kind": "ec", "digest": "db3ab3923b12f8104c17ebf12cff41ad" },
+    "PROM": { "kind": "ec", "digest": "3b9d57ae09c492d4a27ed750d39870f4" },
+    "Pervasive": {
+      "kind": "ec",
+      "digest": "22057c13175c77aea8fe1f8ef714d9a5"
+    },
+    "ROM": { "kind": "eca", "digest": "046dec65850aff1e20ab99b4d5874fbf" },
+    "Real": { "kind": "ec", "digest": "eb14f420a8de0bc04d0d4d0260d22f88" },
+    "RealFun": { "kind": "ec", "digest": "94e9df01d46d6d19785c7a8653a944c0" },
+    "RealLub": { "kind": "ec", "digest": "2217d89dc0bc381a56027c7d190a5461" },
+    "RealSeq": { "kind": "ec", "digest": "a271d4d9669ed6b52e5ad5b3dda631be" },
+    "RealSeries": {
+      "kind": "ec",
+      "digest": "c15b4f2456826e3c72cab230f139a16f"
+    },
+    "Ring": { "kind": "ec", "digest": "9b79c209cdadfabfe2412ed38eb2ced5" },
+    "SmtMap": { "kind": "ec", "digest": "34b8a743a83e2c5a3791ed10f297c89f" },
+    "StdBigop": {
+      "kind": "ec",
+      "digest": "91f2ada92ecb6a21a250d6896b08b7dd"
+    },
+    "StdOrder": {
+      "kind": "ec",
+      "digest": "9f004aca2ca556ca24461289aa039ee9"
+    },
+    "StdRing": { "kind": "ec", "digest": "6a4ffadaafd89f6429325d36b08f678d" },
+    "Tactics": { "kind": "ec", "digest": "6fe558fa476fb96fdc56491cdcc01b91" }
+  }
+}

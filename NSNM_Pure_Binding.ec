@@ -4,7 +4,6 @@ require import Commitment.
 require import Distr AllCore.
 
 
-
 require import D1D2.
 require import NSNM_Definition.
 
@@ -147,7 +146,7 @@ axiom ba : hoare [ A.bind : true ==> res.`2 <> res.`4 ].
 
 
 local lemma ss &m h : Pr[G0(B(A)).main(h) @ &m : true ] = 1%r.
-proof. byphoare.
+proof. byphoare =>//.
 proc. inline*. wp. rnd. 
 conseq (_: _ ==> true). smt.
 wp.  rnd. 
@@ -157,7 +156,7 @@ simplify.
 wp. 
 call Ag_ll. wp. rnd.
 skip. progress. smt.
-smt. auto. auto.
+smt. 
 qed.
 
 
@@ -165,19 +164,18 @@ qed.
 local lemma step1 &m h : 
   Pr[ G0(B(A)).main(h) @ &m : B.vers  /\ (G0.c, G0.d) <>  (G0.c', G0.d')  ]
    = Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers  /\ (G0.c, G0.d) <>  (G0.c', G0.d')  ]. 
-proof. byequiv. 
+proof. byequiv =>//. 
 proc. inline*. wp. rnd. wp.
 rnd.  rnd. wp. call (_:true). wp. rnd. 
-  skip. progress. smt. smt.
-auto. auto.
+skip. progress. smt. smt.
 qed.
 
 local lemma step2 &m h : 
   Pr[ BEP(A).main() @ &m : res ] 
    = Pr[ G0(B(A)).main(h) @ &m : B.vers ].
-proof. byequiv.
+proof. byequiv =>//.
 proc. inline*. wp. rnd {2}. wp. rnd{2}. rnd{2}.
-wp. call (_:true). wp.  rnd. skip. progress. smt. smt.  auto. auto.
+wp. call (_:true). wp.  rnd. skip. progress. smt. smt.
 qed.
 
 
@@ -212,7 +210,7 @@ local module G5 = {
 local lemma jkk &m h : 
   Pr[ G5.main(h) @ &m : !B.vers /\ G5.m = G5.m' ]
  =  Pr[ G5.main(h) @ &m : !B.vers ] * 1%r/2%r .
-byphoare (_: (glob A) = (glob A){m} ==> _). proc. 
+byphoare (_: (glob A) = (glob A){m} ==> _) =>//. proc. 
 inline B(A).commit. 
 inline B(A).decommit. wp. 
 conseq (_: _ ==> !B.vers /\ G5.m = B.m1). smt. 
@@ -230,28 +228,28 @@ call phr. skip.  auto.
 rnd. 
 conseq (_: _ ==> (!B.vers /\ G5.m = B.m1)). smt.
 wp. rnd. conseq (_: _ ==> (!B.vers /\ G5.m = B.m1)). smt.
-rnd. wp. skip. progress. rewrite H0. simplify.
+rnd. wp. skip. progress. rewrite H0 =>//=. 
 rewrite duniform1E. smt.
 simplify.
 hoare. rnd.  wp.  rnd. rnd. wp.  skip. progress. 
-smt. smt. auto. auto.
+smt. smt. 
 qed.
 
 local lemma jkk2 &m h : 
   Pr[ G5.main(h) @ &m : !B.vers /\ G5.m = G5.m' ]
  = Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' ].
-proof. byequiv. proc. sim.  inline*. wp.  rnd. wp. 
+proof. byequiv => //. proc. sim.  inline*. wp.  rnd. wp. 
 rnd. rnd. wp. call (_:true).
-wp.  rnd. skip. progress. auto. auto.
+wp.  rnd. skip. progress. 
 qed.
 
 
 local lemma jkk3 &m h :  
  Pr[ G5.main(h) @ &m : !B.vers ]
  = Pr[ G0(B(A)).main(h) @ &m : !B.vers  ].
-proof. byequiv. proc. sim.  inline*. wp.  
+proof. byequiv =>//. proc. sim.  inline*. wp.  
 rnd. wp. rnd. rnd. wp. call (_:true).
-wp.  rnd. skip. progress. auto. auto.
+wp.  rnd. skip. progress. 
 qed.
 
 
@@ -307,7 +305,7 @@ local lemma step6 &m h:
  - 2%r * Pr[ G0(B(A)).main(h) @ &m : B.vers /\ (G0.c,G0.d) = (G0.c',G0.d') ] 
  <= Pr[ G0(B(A)).main(h) @ &m : res ] - 1%r/2%r
  + Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c,G0.d) = (G0.c',G0.d') ].
-have ->: 
+proof. have ->: 
  Pr[ G0(B(A)).main(h) @ &m : res ]
  =  Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers ]
  + Pr[ G0(B(A)).main(h) @ &m : res /\ !B.vers ].
@@ -396,7 +394,7 @@ qed.
 
 local lemma G1ub &m h : forall (S <: Simulator),
    Pr[ G1(B(A), S).main(h) @ &m : res ] <= 1%r/2%r.
-proof. move => S. byphoare (_: arg = h ==> _).
+proof. move => S. byphoare (_: arg = h ==> _) =>//.
 proc. inline*.
 swap 8 1. 
 seq 5 : (B.m1 <> B.m2) (1%r/2%r) .
@@ -409,7 +407,7 @@ rnd. call (_:true). wp. skip. progress.
 rewrite duniform1E_uniq. smt. simplify. smt.
 wp. hoare.
 simplify. call (_:true ==> res.`2 <> res.`4). apply ba.
-wp. rnd.  skip. auto. auto. auto. auto.
+wp. rnd.  skip. auto. auto. 
 qed.
 
 
@@ -501,9 +499,9 @@ local lemma nsnm_pure_binding' &m h :  forall (S <: Simulator {B, A}),
   Pr[ BindingExperiment(A).main() @ &m : res ] <= 
   2%r * (Pr[ SG0(B(A)).main(h) @ &m : res ] - Pr[ SG1(B(A),S).main(h) @ &m : res ]) 
    + 6%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ].
-move => S.
+proof. move => S.
 have ->:   Pr[ BindingExperiment(A).main() @ &m : res ] = Pr[ BEP(A).main() @ &m : res ]. 
-byequiv. sim. auto. auto.
+byequiv =>//. sim. 
 have :  1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
  - 3%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ] 
  <= Pr[ SG0(B(A)).main(h) @ &m : res ] - Pr[ SG1(B(A),S).main(h) @ &m : res ].
@@ -515,12 +513,11 @@ qed.
 local lemma guessprob &m h : 
   Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ]
   <=   Pr[ UnpredGame(BG(A)).main() @ &m : res ].
-proof. byequiv.
+proof. byequiv =>//.
 proc. inline*. swap {1} [14..15] -5.
 wp. rnd.  wp. rnd. wp. rnd.  wp.  call (_:true).
 wp.   rnd. 
 skip. progress.  smt.
-auto. auto.
 qed.
 
 

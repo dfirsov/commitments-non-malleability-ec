@@ -3,7 +3,6 @@ require import DBool List Real.
 require import Commitment.
 require import Distr AllCore.
 
-
 require import D1D2.
 require WholeMsg.
 
@@ -187,7 +186,7 @@ qed.
 
 local lemma game1 &m h : forall (S <: Simulator),
    Pr[ SNM_G1'(H(A), S).main(h) @ &m : res ] <= 1%r/2%r.
-proof. move => S. byphoare (_: arg = h ==> _).
+proof. move => S. byphoare (_: arg = h ==> _) =>//.
 proc. inline*.
 swap 7 1. 
 seq 6 : (md = duniform [H.m1; H.m2] /\ rel = (fun (m1 m2 : message) => m1 = m2) /\ H.m1 <> H.m2) (1%r/2%r).
@@ -202,19 +201,18 @@ rewrite duniform1E_uniq. smt. simplify. smt.
 wp. hoare.
 simplify.
 call (_:true ==> res.`1 <> res.`2). apply qq0h.
-wp. rnd.  skip. auto. auto.  auto. auto.
+wp. rnd.  skip. auto. auto.
 qed.
 
 
 
 local lemma qq1_impl &m : Pr[ HEPT0(A).main() @ &m : HEP.m1 = HEP.m2 ] = 0%r.
 proof. 
- have : Pr[ HEPT0(A).main() @ &m : true ] = 1%r.
-byphoare.
+have : Pr[ HEPT0(A).main() @ &m : true ] = 1%r.
+byphoare =>//.
 proc. inline*. call (_:true).
 apply Ag_ll. wp. rnd. call Ac_ll. rnd. skip.  smt.
-auto. auto.
-rewrite Pr[mu_split HEP.m1 = HEP.m2]. simplify.
+rewrite Pr[mu_split HEP.m1 = HEP.m2] =>//.
 rewrite - (qq1 &m). smt.
 qed.
 
@@ -222,11 +220,10 @@ qed.
 local lemma qq2_impl &m : Pr[ HEPT1(A).main() @ &m : HEP.m1 = HEP.m2 ] = 0%r.
 proof. 
 have : Pr[ HEPT1(A).main() @ &m : true ] = 1%r.
-byphoare.
+byphoare =>//.
 proc. inline*. call (_:true).
 apply Ag_ll. wp. rnd. call Ac_ll. rnd. skip.  smt.
-auto. auto.
-rewrite Pr[mu_split HEP.m1 = HEP.m2]. simplify.
+rewrite Pr[mu_split HEP.m1 = HEP.m2] =>//.
 rewrite - (qq1 &m). smt.
 qed.
 
@@ -270,9 +267,9 @@ local module SNM_G0y(A : AdvSNM) = {
 local lemma qq &m h :
   Pr[ SNM_G0'(H(A)).main(h) @ &m : res ]
  =   Pr[ SNM_G0z(H(A)).main(h) @ &m : res ].
-proof. byequiv (_: ={glob A, arg} ==> _). 
+proof. byequiv (_: ={glob A, arg} ==> _) =>//. 
 proc. inline*.  sim. wp. rnd. wp. call (_:true).
-wp. rnd. skip. progress. auto. auto.
+wp. rnd. skip. progress. 
 qed.
 
 
@@ -280,9 +277,9 @@ qed.
 local lemma pp &m h :
  Pr[ SNM_G0z(H(A)).main(h) @ &m : res ]
  = Pr[ SNM_G0y(H(A)).main(h) @ &m : res ].
-proof. byequiv.
+proof. byequiv =>//.
 proc. sim.  call q1q2. inline*. wp. call (_:true). wp.
-rnd. skip. progress. auto. auto. 
+rnd. skip. progress. 
 qed.
 
 
@@ -324,11 +321,10 @@ local module MyTail'(A : AdvSNM) = {
 local lemma dd &m h :
  Pr[ SNM_G0y(H(A)).main(h) @ &m : res ]
  = Pr[ W(MyTail(H(A))).main(h) @ &m : res ].
-byequiv. proc. 
+proof. byequiv => //. proc. 
 inline*. wp. rnd.  call (_:true).
 wp. rnd.  wp.  swap {1} 9 -8.  wp.  call (_:true).
 wp.  rnd. wp.  rnd. skip. progress. smt. smt. 
-auto. auto.
 qed.
 
 
@@ -354,11 +350,11 @@ local lemma kk &m h :
  Pr[ HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2 ] <=
  Pr[ MyTail(H(A)).main(false, h) @ &m : res /\ H.m1 <> H.m2 ] +
  Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ].
-proof. byequiv.
+proof. byequiv =>//.
 proc. 
 wp.  inline*. wp. rnd {2}. wp. call (_:true). wp.
 rnd. wp.  call (_:true). wp. rnd. skip. progress.
-smt. smt. smt. auto.
+smt. smt. smt. 
 qed.
 
 
@@ -370,12 +366,11 @@ proof.
 have ->: Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 <>  HEP.m2 ] =
   Pr[ HEPT1(A).main() @ &m : res = true /\  HEP.m1 <> HEP.m2 ].
 rewrite Pr[mu_eq]. smt. auto.
-byequiv.
+byequiv =>//.
 proc. inline*. 
 wp. rnd {2}. wp. call (_:true). 
 wp. rnd. wp. call (_:true). wp. rnd.
-skip. progress. smt. smt. 
-smt. smt.
+skip. progress. smt. smt. smt. 
 qed.
 
 
@@ -416,25 +411,23 @@ qed.
 
 
 lemma obv (a b c d : real) : a <= c /\ b <= d =>  (a + b) - 1%r <= (c + d) - 1%r.
-smt.
+proof. smt.
 qed.
 
 
 local lemma ssf3 &m h : 
  Pr[MyTail(H(A)).main(false, h) @ &m :  H.m1 = H.m2]
  = Pr[ HEPT0(A).main() @ &m : HEP.m1 = HEP.m2 ].
-proof. byequiv.  proc. inline*. wp. rnd{1}. wp. call (_:true).
-wp.  rnd. wp.  call (_:true). wp.  rnd. skip. progress.
-smt. auto. auto.
+proof. byequiv =>//.  proc. inline*. wp. rnd{1}. wp. call (_:true).
+wp.  rnd. wp.  call (_:true). wp.  rnd. skip. progress. smt.
 qed.
 
 
 local lemma ssf4 &m h : 
  Pr[MyTail(H(A)).main(true, h) @ &m :  H.m1 = H.m2]
  = Pr[ HEPT1(A).main() @ &m : HEP.m1 = HEP.m2 ].
-proof. byequiv.  proc. inline*. wp. rnd{1}. wp. call (_:true).
-wp.  rnd. wp.  call (_:true). wp.  rnd. skip. progress.
-smt. auto. auto.
+proof. byequiv =>//.  proc. inline*. wp. rnd{1}. wp. call (_:true).
+wp.  rnd. wp.  call (_:true). wp.  rnd. skip. progress. smt. 
 qed.
 
 local lemma ssf2 &m h : 
@@ -445,19 +438,18 @@ local lemma ssf2 &m h :
 proof.
 have ->: Pr[ SG0(H(A)).main(h) @ &m : res ]
  = Pr[ SNM_G0'(H(A)).main(h) @ &m : res ].
-byequiv. sim. auto. auto.
+byequiv =>//. sim. 
 have ->: Pr[ SNM_G0'(H(A)).main(h) @ &m : res ] = 
  Pr[  W(MyTail(H(A))).main(h) @ &m : res ].
 rewrite - (dd &m h). rewrite (qq &m h).
-rewrite  (pp &m h). auto.
+rewrite  (pp &m h) =>//. 
 have <-: Pr[ HEPT0(A).main() @ &m : res ]
  = Pr[ HidingExperiment0(A).main() @ &m : res ].
-byequiv. sim. auto. auto.
+byequiv =>//. sim.
 have <-: Pr[ HEPT1(A).main() @ &m : res ]
  = Pr[ HidingExperiment1(A).main() @ &m : res ].
-byequiv. sim. auto. auto.
-rewrite mysplitcases. rewrite ssf1.
-rewrite qq1.
+byequiv =>//. sim. 
+rewrite mysplitcases ssf1 qq1.
 have ->: Pr[MyTail(H(A)).main(false, h) @ &m : res]
   = Pr[MyTail(H(A)).main(false, h) @ &m : res /\ H.m1 <> H.m2 ].
 rewrite Pr[mu_split H.m1 = H.m2].
@@ -538,7 +530,7 @@ local lemma nsnm_pure_hiding' &m h : forall (S <: Simulator {H, A}),
  <= Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
  + Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
  + Pr[ MyTail(H(A)).main(true, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r.
-move => S.
+proof. move => S.
 have f1 :  1%r/2%r * (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= Pr[ SG0(H(A)).main(h) @ &m : res ] - 1%r/2%r
  + Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
@@ -546,7 +538,7 @@ have f1 :  1%r/2%r * (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingE
 apply ssf2.
 have f2 : Pr[ SG1(H(A), S).main(h) @ &m : res ] <= 1%r/2%r.
 have ->: Pr[ SG1(H(A), S).main(h) @ &m : res ] = Pr[ SNM_G1'(H(A), S).main(h) @ &m : res ].
-byequiv. sim. auto. auto. apply (game1 &m h S).
+byequiv =>//. sim. apply (game1 &m h S).
 have f3: 
  Pr[SG0(H(A)).main(h) @ &m : res] - 1%r/2%r +
    Pr[MyTail(H(A)).main(false, h) @ &m :
@@ -564,7 +556,7 @@ apply (ler_trans (Pr[SG0(H(A)).main(h) @ &m : res] - 1%r/2%r +
    Pr[MyTail(H(A)).main(false, h) @ &m :
       (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] / 2%r +
    Pr[MyTail(H(A)).main(true, h) @ &m :
-     (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] / 2%r)).  apply f1.
+     (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] / 2%r)). apply f1.
 apply f3.
 qed.
 
@@ -616,25 +608,24 @@ have ->:
   have ->: Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
    = Pr[ MyTail'(H(A)).main(false, h) @ &m : res ]. 
    byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} 
-     = res{2} ). proc. sim. auto. smt.
+     = res{2} ) =>//. proc. sim. 
   have ->: Pr[ MyTail(H(A)).main(true, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
    = Pr[ MyTail'(H(A)).main(true, h) @ &m : res ]. 
    byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} 
-     = res{2} ). proc. sim. auto. smt.
-  have ->: Pr[ W(MyTail(H(A))).main(h) @ &m :  (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
+     = res{2} )=>//. proc. sim.   have ->: Pr[ W(MyTail(H(A))).main(h) @ &m :  (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
    = Pr[ W(MyTail'(H(A))).main(h) @ &m :  res ].
    byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} 
-     = res{2} ). proc.  inline*. wp.  simplify. sim. auto. auto. 
-rewrite (mysplitcases' &m h). auto.
+     = res{2} ) =>//. proc.  inline*. wp.  simplify. sim.  
+rewrite (mysplitcases' &m h) =>//. 
 have ->: Pr[ UnpredGame(HG(A)).main() @ &m : res ]
  = Pr[ HG'(A).main() @ &m : res ].
-byequiv (_: ={glob A}  ==> _). proc.  inline*. swap {1} 4 -3.  wp. 
-rnd. wp.  rnd. wp.  call (_:true).  wp. rnd. rnd. skip. progress.  auto. auto.
-byequiv (_: ={glob A}  ==> _).
+byequiv (_: ={glob A}  ==> _) =>//. proc.  inline*. swap {1} 4 -3.  wp. 
+rnd. wp.  rnd. wp.  call (_:true).  wp. rnd. rnd. skip. progress. 
+byequiv (_: ={glob A}  ==> _) =>//.
 proc. inline*. simplify. swap {2} [8..9] -3.
 wp. rnd. wp.  call {1} Ag_ll. wp. rnd. wp.
 call (_:true). wp.  rnd.  wp. rnd. skip. progress. 
- smt. smt. auto.  auto.
+ smt. smt. 
 qed.
 
 
@@ -643,7 +634,7 @@ lemma snnm_pure_hiding1 &m h : forall (S <: Simulator {H, A}),
  (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
  + Pr[ UnpredGame(HG(A)).main() @ &m : res ]).
-move => S.
+proof. move => S.
 have q : 1%r/2%r * (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
  + Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
@@ -673,7 +664,6 @@ module F(A : Unhider) = {
 
 
 
-
 section.
 declare module A : Unhider {H, HEPT0,HEPT1}.
 
@@ -686,34 +676,32 @@ axiom a5:  phoare[ A.choose : true ==> res.`1 <> res.`2] = 1%r.
 axiom a6 : islossless A.guess.
 
 local lemma fl1 &m : Pr[ HidingExperiment0(F(A)).main() @ &m : res ] = Pr[ HidingExperiment0(A).main() @ &m : !res ].
-proof. byequiv. proc. inline*. wp. call (_:true).
-wp.  rnd. wp.  call (_:true). wp. rnd. skip. progress. auto. auto.
+proof. byequiv =>//. proc. inline*. wp. call (_:true).
+wp.  rnd. wp.  call (_:true). wp. rnd. skip. progress. 
 qed.
 
 local lemma fl11 &m : Pr[ HidingExperiment0(F(A)).main() @ &m : res ] = 1%r - Pr[ HidingExperiment0(A).main() @ &m : res ].
-rewrite fl1.
-rewrite Pr[mu_not]. 
+proof. rewrite fl1 Pr[mu_not]. 
 have ->: Pr[HidingExperiment0(A).main() @ &m : true] = 1%r.
-byphoare. proc. call a6. wp.  rnd.  call a2. rnd. skip.  smt. auto.  auto. auto.
+byphoare =>//. proc. call a6. wp.  rnd.  call a2. rnd. skip.  smt. auto.
 qed.
 
 
 local lemma fl2 &m : Pr[ HidingExperiment1(F(A)).main() @ &m : res ] = Pr[ HidingExperiment1(A).main() @ &m : !res ].
-proof. byequiv. proc. inline*. wp. call (_:true).
-wp.  rnd. wp.  call (_:true). wp. rnd. skip. progress. auto. auto.
+proof. byequiv =>//. proc. inline*. wp. call (_:true).
+wp.  rnd. wp.  call (_:true). wp. rnd. skip. progress. 
 qed.
 
 local lemma fl22 &m : Pr[ HidingExperiment1(F(A)).main() @ &m : res ] = 1%r - Pr[ HidingExperiment1(A).main() @ &m : res ].
-rewrite fl2.
-rewrite Pr[mu_not]. 
+proof. rewrite fl2 Pr[mu_not]. 
 have ->: Pr[HidingExperiment1(A).main() @ &m : true] = 1%r.
-byphoare. proc. call a6. wp.  rnd.  call a2. rnd. skip.  smt. auto.  auto. auto.
+byphoare =>//. proc. call a6. wp.  rnd.  call a2. rnd. skip.  smt. auto. 
 qed.
 
 local lemma fl3 &m : Pr[ HidingExperiment1(F(A)).main() @ &m : res ] 
  - Pr[ HidingExperiment0(F(A)).main() @ &m : res ] = - (Pr[ HidingExperiment1(A).main() @ &m : res ] - 
   Pr[ HidingExperiment0(A).main() @ &m : res ] ).
-smt.
+proof. smt.
 qed.
 
 op maxr (a b : real) = if a < b then b else a.
@@ -722,21 +710,19 @@ local lemma snnm_pure_hiding2 &m h : forall (S <: Simulator {H, A}),
  (Pr[ HidingExperiment1(F(A)).main() @ &m : res ] - Pr[ HidingExperiment0(F(A)).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(F(A))).main(h) @ &m : res ] - Pr[ SG1(H(F(A)),S).main(h) @ &m : res ]
  + Pr[ UnpredGame(HG(F(A))).main() @ &m : res ]).
-move => S.  
+proof. move => S.  
 have fa1 : phoare[ F(A).guess : true ==> true] = 1%r. 
 proc. call a1. auto.
 have fa2:  phoare[ F(A).choose : true ==> true] = 1%r. 
 proc. call a2. auto.
 have fa3 : forall &m, Pr[HEPT0(F(A)).main() @ &m : HEP.m1 <> HEP.m2] = 1%r. 
 move => &m0.
-  have ->: Pr[HEPT0(F(A)).main() @ &m0 : HEP.m1 <> HEP.m2] = Pr[HEPT0(A).main() @ &m0 : HEP.m1 <> HEP.m2].
-byequiv. proc.  inline*. wp. call (_:true). wp. rnd.  wp. call (_:true). wp. rnd. skip. progress. auto.
-auto. apply a3.
+have ->: Pr[HEPT0(F(A)).main() @ &m0 : HEP.m1 <> HEP.m2] = Pr[HEPT0(A).main() @ &m0 : HEP.m1 <> HEP.m2].
+byequiv =>//. proc.  inline*. wp. call (_:true). wp. rnd.  wp. call (_:true). wp. rnd. skip. progress. apply a3.
 have fa4 : forall &m, Pr[HEPT1(F(A)).main() @ &m : HEP.m1 <> HEP.m2] = 1%r. 
 move => &m0.
-  have ->: Pr[HEPT1(F(A)).main() @ &m0 : HEP.m1 <> HEP.m2] = Pr[HEPT1(A).main() @ &m0 : HEP.m1 <> HEP.m2].
-byequiv. proc.  inline*. wp. call (_:true). wp. rnd.  wp. call (_:true). wp. rnd. skip. progress. auto.
-auto. apply a4.
+have ->: Pr[HEPT1(F(A)).main() @ &m0 : HEP.m1 <> HEP.m2] = Pr[HEPT1(A).main() @ &m0 : HEP.m1 <> HEP.m2].
+byequiv =>//. proc.  inline*. wp. call (_:true). wp. rnd.  wp. call (_:true). wp. rnd. skip. progress. apply a4.
 have fa5:  phoare[ F(A).choose : true ==> res.`1 <> res.`2] = 1%r. 
 proc. call a5. skip. auto.
 apply (snnm_pure_hiding1 (F(A)) fa1 fa2 fa3 fa4 fa5 &m h S).     
@@ -750,7 +736,7 @@ lemma nsnm_pure_hiding &m h : forall (S <: Simulator {H, A}),
            + Pr[ UnpredGame(HG(A)).main() @ &m : res ]))
       (2%r * (Pr[ SG0(H(F(A))).main(h) @ &m : res ] - Pr[ SG1(H(F(A)),S).main(h) @ &m : res ]
            + Pr[ UnpredGame(HG(F(A))).main() @ &m : res ])) .
-move => S.
+proof. move => S.
     have b1 : (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
  + Pr[ UnpredGame(HG(A)).main() @ &m : res ]).

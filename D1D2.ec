@@ -50,17 +50,14 @@ wp. skip.  progress.
 case bR.
 move => _. 
 rewrite eq_sym in m1_and_m2_diff. rewrite m1_and_m2_diff => //. progress.
-
 have : mu1 {0,1} true = 1%r/2%r.
 rewrite duniformE => //=. rewrite b2i1 b2i0 => //=. progress. 
-
 case bR => // b.
 rewrite H1 duniformE => /=. rewrite m1_and_m2_diff => /=. 
 rewrite b2i1. have : !(pred1 m2 m1). progress. move => ->. rewrite b2i0 => //. 
 rewrite duniformE => /=. rewrite b2i1 b2i0 => /=.  
 rewrite duniformE => /=. rewrite m1_and_m2_diff => /=. 
-rewrite b2i1. have : !(pred1 m1 m2). rewrite eq_sym in m1_and_m2_diff => //. move => ->. rewrite b2i0 => //. 
- 
+rewrite b2i1. have : !(pred1 m1 m2). rewrite eq_sym in m1_and_m2_diff => //. move => ->. rewrite b2i0 => //.  
 case (mL = m1). move => -> =>//. progress => //. 
 rewrite supp_duniform mem_seq2 in H1. 
 elim H1 => [mL1 | mL2] => //.   
@@ -76,17 +73,14 @@ wp. skip.  progress.
 case bR.
 move => _.
 rewrite eq_sym in m1_and_m2_diff. by rewrite m1_and_m2_diff.  progress. 
-
 have : mu1 {0,1} true = 1%r/2%r.
 rewrite duniformE => //=. by rewrite b2i1 b2i0. progress.
-
 case bR => // b.
 rewrite H1 duniformE => /=. rewrite m1_and_m2_diff => /=. 
 rewrite b2i1. have : !(pred1 m2 m1). progress. move => ->. rewrite b2i0 => //. 
 rewrite duniformE => /=. rewrite b2i1 b2i0 => /=.  
 rewrite duniformE => /=. rewrite m1_and_m2_diff => /=. 
 rewrite b2i1. have : !(pred1 m1 m2). rewrite eq_sym in m1_and_m2_diff => //. move => ->. by rewrite b2i0. 
-
 case (mL = m1). move => -> =>//. progress => //. 
 rewrite supp_duniform mem_seq2 in H1. 
 elim H1 => [mL1 | mL2] => //. 
@@ -153,8 +147,7 @@ lemma q1q2 :
   equiv [D1.sample ~ D2.sample : ={arg}  ==> ={res} ].
 proof. 
 conseq (_: (exists w1 w2, arg{1} = (w1,w2)) /\ ={arg} ==> _).
-progress. smt. 
-elim*.
+progress. smt. elim*.
 progress. conseq (q1q2e w1 w2) => //. 
 qed.
 

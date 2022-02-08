@@ -240,8 +240,9 @@ rewrite h1.
 have ->: Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c = A.c'] +
 Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c <> A.c'] -
 Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c = A.c'] = 
-Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c <> A.c']. smt.  
-auto. 
+Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c <> A.c']. 
+have : forall (x y : real), x + y - x = y. progress. smt. move => H. 
+apply H. auto. 
 rewrite g0. auto. 
 qed.
 
@@ -279,8 +280,10 @@ rewrite mu0_false. progress. reflexivity.
 rewrite Dr_ll =>//. progress.
 hoare.
 
-wp. rnd. wp. rnd. rnd.  skip. progress. 
-smt. 
+wp. rnd. wp. rnd. rnd.  skip. progress.
+rewrite  negb_and. case(NNMO_G1.m{hr} <> m1). 
+progress. simplify. move => h.
+progress.
 progress.
 qed. 
 
@@ -290,14 +293,12 @@ lemma g1a &m:
   Pr[ NNMO_G1(A).main() @ &m : res ] = 1%r/4%r
     -  Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\  NNMO_G1.n = m1 /\ NNMO_G1.c = A.c'].
 proof.
-
 have : Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c'] =
   Pr[ NNMO_G1(A).main() @ &m : res ].
 byequiv(_: _ ==> _) => //.
 proc. inline*.  
 wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
 skip. progress.   
-
 have : Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)).    
 have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. rewrite -pairS => //.
 rewrite S_correct. apply H. move => b. 
@@ -368,7 +369,8 @@ move => q.  rewrite  q.
 simplify. auto.
 move => H10.  
 
-have ->: Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = true. smt. 
+have ->: Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = true. 
+rewrite eqT. apply negbFE in H10. auto.
 progress. 
 
 have :  Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = false.
@@ -390,12 +392,10 @@ move => H11. progress.
 have :  Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = false.
 have ->: ((Com pkL rL mL).`1, (Com pkL rL mL).`2) = Com pkL rL mL. 
 rewrite -pairS => //.
-rewrite mLem2. 
-
-rewrite S_inj. apply H. apply m1_and_m2_diff. progress. progress. smt.
-  
+rewrite mLem2.
+rewrite S_inj. apply H. apply m1_and_m2_diff. progress. progress. smt. 
+         
 move => a. rewrite -a. 
-
 have : Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 ] =
 Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c = A.c' ] +  
 Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c'].
@@ -409,16 +409,13 @@ have ->: Pr[NNMO_G1(A).main() @ &m : (NNMO_G1.m = m1 /\ NNMO_G1.n = m1) /\ NNMO_
  = Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c'].
 rewrite Pr[mu_eq]. progress. auto.
 
-progress.
-move => b.
-
+progress. move => b.
 have ->: Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c = A.c'] =
   Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1] -
   Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c'].
 rewrite b. smt.
  
 rewrite g1. 
-
 have ->: 1%r / 4%r - 
 (1%r / 4%r - Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c']) =
 Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c'].
@@ -624,8 +621,10 @@ proc.
 inline*. 
 wp. rnd. wp. rnd. rnd. wp. rnd. wp.
 skip. progress.
-smt.   
-smt.
+rewrite !negb_and.   
+have : m1 <> m2. apply m1_and_m2_diff. rewrite eq_sym.
+move => H3. rewrite H3. progress. 
+apply invr0. 
 qed.
 
 
@@ -681,7 +680,6 @@ wp. rnd. wp. rnd.
 swap {2} 4 -2.
 wp. swap {2} 1 1. rnd. wp. rnd.
 skip. progress.
- 
 byphoare(_: (glob Q) = (glob Q){m} ==> _) =>//. 
 pose z := Pr[Q.main(m1,tt) @ &m : res].
 proc.  
@@ -696,7 +694,9 @@ rewrite b2i0 b2i1 =>//.
 have phr : phoare[ Q.main : arg = (m1,tt)  ==> res ] = Pr[Q.main(m1,tt) @ &m : res].
 bypr. progress. byequiv. proc.
 inline*. wp. rnd. wp. rnd. rnd. 
-skip. progress. smt. auto.
+skip. progress.
+have : m{m0} = m1. rewrite H. rewrite fst_pair. auto.
+move => H6. rewrite H6. auto. auto. 
 progress.
 call phr.
 skip. progress.
@@ -724,7 +724,7 @@ skip. progress.
 rewrite h.
 have ->: (inv 4%r - 1%r / 2%r * Pr[Q.main(m1,tt) @ &m : res] + 1%r / 2%r * Pr[Q.main(m1,tt) @ &m : res] / 2%r) = 
 (inv 4%r - 1%r / 4%r * Pr[Q.main(m1,tt) @ &m : res]). smt.
-smt.
+progress. smt. 
 qed.
 
 

@@ -11,7 +11,7 @@ clone import CommitmentProtocol as CP with type value      <- value,
                                            type openingkey <- openingkey.
 
 
-op rndstr : (bool list) distr. (* randmoness *)
+op rndstr : (bool list) distr. (* randomness *)
 op Com (x : value) (r : bool list) (m : message) : commitment * openingkey.
 op Ver : value -> message * (commitment * openingkey) -> bool.
 op Dpk : value distr.
