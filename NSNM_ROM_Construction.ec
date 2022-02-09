@@ -126,13 +126,13 @@ local module (G0HA : HitAdversary) (RO : Oracle)  = {
     var d'  : openingkey
     var m' : message
     var b : bool
-  proc play(dm : (openingkey * message), c' : commitment) = {
-    (d', m')           <- A.decommit(dm.`1);    
-    b <- CS.verify(tt, m', c', d');
- }
+    proc play(dm : (openingkey * message), c' : commitment) = {
+      (d', m') <- A.decommit(dm.`1);    
+      b        <- CS.verify(tt, m', c', d');
+  }
 }.
 
-local module G0H(RO : Oracle, CS:CommitmentScheme, A : AdvSNM) = {
+local module G0H(RO : Oracle, CS : CommitmentScheme, A : AdvSNM) = {
   var c, c' : commitment
   var d : openingkey
   var m : message
@@ -141,16 +141,16 @@ local module G0H(RO : Oracle, CS:CommitmentScheme, A : AdvSNM) = {
   module G = G0HA(RO)
   proc main(h : advice)  = {
     var pk,ssnmdistr, rel;    
-    mm <- empty;
+    mm                 <- empty;
     RO.init();
     pk                 <- CS.gen(); 
-    (ssnmdistr, rel)          <- A.init(pk, h);
+    (ssnmdistr, rel)   <- A.init(pk, h);
     m                  <$ ssnmdistr;
     d                  <$ rt_distr;
     c                  <$ dout_distr; 
     c'                 <- A.commit(c, rel);
-    mm <- LRO.m;    
-    LRO.m <- LRO.m.[(d,m) <- c];
+    mm                 <- LRO.m;    
+    LRO.m              <- LRO.m.[(d,m) <- c];
     G.play((d,G.m'),c');
   }
 }.
@@ -176,62 +176,45 @@ local lemma Aqql &m rel:
      /\ lookupc LRO.m G0H.c'  = true ] 
   <= (qH%r / (supp_size dout_distr)%r).
 proof. byphoare =>//.
-proc.
+proc. 
 seq 9 : (G0H.mm = LRO.m /\ ((card (fdom LRO.m))  <= size Log.qs)) (qH%r /(supp_size dout_distr)%r).
-inline*. wp.   call (_:true). conseq LogLRO.
-wp.  rnd.  wp.  rnd.  wp.  rnd.  
+inline*. wp. call (_:true). conseq LogLRO.
+rnd. rnd.  rnd.  
 call (_: LRO.m = empty /\ G0H.mm = empty /\ Log.qs = []).
 wp.  skip. auto.
-wp.  simplify. call (_:true ==> true).
+wp =>//=.  call (_:true ==> true).
 have ->: qH%r / ((supp_size dout_distr)%r * qH%r / (supp_size dout_distr)%r)
  = 1%r. smt.  bypr. smt.
-wp.  rnd. auto.
+rnd =>//. 
 case (lookupc G0H.mm G0H.c' = false /\ G0H.c <> G0H.c').
 conseq (_:(exists c'var, c'var = G0H.c') /\ exists lvar, lvar =  size Log.qs
 /\ card (fdom LRO.m)  <= size Log.qs /\ G0H.mm = LRO.m /\ lookupc G0H.mm G0H.c' = false /\ G0H.c <> G0H.c' ==> _).
 smt.
-elim*. move => c'var. move => lvar.
-call (hitlemma G0HA c'var lvar ). wp. skip. progress. smt(thm7). 
-
+elim*. move => c'var lvar.
+call (hitlemma G0HA c'var lvar). wp. skip. progress. smt(thm7). 
 pose x := fdom LRO.m{hr}.
 pose y := (fdom LRO.m{hr}.[G0H.d{hr}, G0H.m{hr} <- G0H.c{hr}]).
 have : x \subset y. smt. move => h. apply subset_leq_fcard in h.
 case(card x = card y). smt. progress. 
 case((G0H.d{hr}, G0H.m{hr}) \in LRO.m{hr}). progress.
-have : (G0H.d{hr}, G0H.m{hr}) \in x. smt. progress.
-rewrite memE in H4.
-have : (G0H.d{hr}, G0H.m{hr}) \in LRO.m{hr}.[G0H.d{hr}, G0H.m{hr} <- G0H.c{hr}]. 
-smt. progress.  
-have : (G0H.d{hr}, G0H.m{hr}) \in y. smt. progress.
-rewrite memE in H6.  
-have : card x < card y. smt. rewrite /card. progress.  
-have : x = y.  
-apply fsetP. smt. progress. smt. 
-progress.
-have : !(G0H.d{hr}, G0H.m{hr}) \in x. smt. progress.
-rewrite memE in H4.
-have : (G0H.d{hr}, G0H.m{hr}) \in y. smt. progress.
-rewrite memE in H5.  
+have : x = y. apply fsetP. smt. progress. smt. progress.
 have : card x < card y. smt. rewrite /card. progress.  
 have : x <> y. smt. progress.
 case(x = fset0). smt. progress.
-have : size(elems y) - size(elems x) = 1. smt. progress.
-smt. 
-
+have : size(elems y) - size(elems x) = 1. smt. progress. smt. 
 hoare.  smt.
 conseq (_: _ ==> !(G0H.c <> G0H.c' /\
      lookupc G0H.mm G0H.c' = false)). smt.
 inline*.  wp.  rnd.  wp. call (_: !(lookupc G0H.mm G0H.c' = false /\ G0H.c <> G0H.c')).
-proc. wp.  inline*. wp. rnd. wp. skip. smt. wp. skip. progress. smt.
-hoare. simplify. wp. simplify.
-call (_: card (fdom LRO.m)  <= size Log.qs). 
+proc. inline*. wp. rnd. wp. skip. smt. wp. skip. progress. smt.
+hoare. simplify. wp =>//=. 
+call (_: card (fdom LRO.m) <= size Log.qs). 
 proc. inline*. wp. rnd. wp. skip. progress.
 clear H1 H0. smt. smt.
-wp. rnd. rnd. rnd. inline*. wp. 
+rnd. rnd. rnd. inline*. 
 call (_: LRO.m = empty /\ G0H.mm = empty /\ Log.qs = []).  
-wp. skip . progress. smt.
+wp. skip. progress. smt.
 progress.
-
 have-> : (qH%r * qH%r /
 ((supp_size dout_distr)%r * (qH%r * (supp_size dout_distr)%r) /
  (supp_size dout_distr)%r) ) = ((qH%r * qH%r /
@@ -240,12 +223,12 @@ qed.
 
 
 
-local module (Aq : DupAdversary) (O:Oracle)  = {
+local module (Aq : DupAdversary) (O : Oracle)  = {
   module CS = RomCom(O)  
   module A = BA(O)
   proc play(h : advice) : unit = {
     var  m, c, d, c', d', m', v, ssnmdistr, rel;
-    (ssnmdistr, rel)          <- A.init(tt, h);
+    (ssnmdistr, rel)   <- A.init(tt, h);
     m                  <$ ssnmdistr;
     (c, d)             <- CS.commit(tt, m);
     c'                 <- A.commit(c, rel);
@@ -265,11 +248,8 @@ conseq (_: _ ==> (SNM_ROM_G0.v{1} /\
      SNM_ROM_G0.d{1} <> SNM_ROM_G0.d'{1}) /\
   SNM_ROM_G0.c{1} = SNM_ROM_G0.c'{1} /\ size Log.qs{1} <= qH => size Log.qs{2} <= qH /\ hasdup LRO.m{2}). smt.
 seq 4 4 : (={glob BA, rel, glob SNM_ROM_G0, glob LRO, glob Log} /\ (LRO.m.[(SNM_ROM_G0.d,SNM_ROM_G0.m)] = Some SNM_ROM_G0.c){1}).
-inline*. wp. rnd. 
-wp. rnd. wp.  rnd.
-call (_:true).
- wp. skip. progress. smt.
-smt. 
+inline*. wp. rnd. wp. rnd. wp.  rnd.
+call (_:true). wp. skip. progress. smt. smt. 
 seq 3 3 : (={glob BA, rel,  glob SNM_ROM_G0, glob LRO, glob Log} /\ (LRO.m.[(SNM_ROM_G0.d,SNM_ROM_G0.m)] = Some SNM_ROM_G0.c){1}
   /\ (SNM_ROM_G0.v => (LRO.m.[(SNM_ROM_G0.d',SNM_ROM_G0.m')] = Some SNM_ROM_G0.c')){1}).
 inline*. 
@@ -280,7 +260,7 @@ call (_: (={glob SNM_ROM_G0, glob LRO, glob Log} /\ (LRO.m.[(SNM_ROM_G0.d,SNM_RO
 proc. inline*.  wp.  rnd. wp. skip. progress. smt.
 skip. progress.
 smt. smt. smt.
-skip.  progress. smt(thm6).
+skip. progress. smt(thm6).
 qed.
 
 
@@ -292,9 +272,9 @@ have ->: Pr[SNM_ROM_G0(RomCom(Log(LRO)),BA(Log(LRO))).main(rel) @ &m: size Log.q
   = Pr[DupMain(Log(LRO), Aq).main(rel) @ &m : size Log.qs <= qH /\ hasdup LRO.m].
 byequiv =>//. proc. 
 inline*. sim. 
-call (_: ={glob Log, glob LRO}). wp. skip. auto.
+call (_: ={glob Log, glob LRO}). wp. skip =>//. 
 have ->: Pr[DupMain(Log(LRO), Aq).main(rel) @ &m : size Log.qs <= qH /\ hasdup LRO.m]
- = Pr[DupMain(Log(LRO), Aq).main(rel) @ &m : hasdup LRO.m /\ size Log.qs <= qH].  rewrite Pr[mu_eq]. auto. auto.
+ = Pr[DupMain(Log(LRO), Aq).main(rel) @ &m : hasdup LRO.m /\ size Log.qs <= qH]. rewrite Pr[mu_eq]=>//. 
 apply (winPr &m rel Aq).
 qed.
 
@@ -316,8 +296,8 @@ local module (MD : Dist) (H : Oracle) = {
     return (d, m);
   }  
   proc a2(c : commitment) : commitment  = {
-    cc <- c;
-    MD.c'   <- B.commit(c, rel);
+    cc    <- c;
+    MD.c' <- B.commit(c, rel);
     return  c';
   }
   proc a3(c' : commitment) : bool = {
@@ -334,9 +314,7 @@ local lemma g_bad_pr1 &m mrel:
   Pr[G_bad(MD,LRO).main(mrel) @ &m: MD.d \in (map fst G_bad.mqs) ].
 proof. byequiv =>//. proc. inline*. wp. rnd. wp. call (_: ={glob LRO, glob Log}). sim.
 wp. call (_: ={glob LRO, glob Log}). sim. wp.  rnd.  wp. rnd. rnd.  call (_:true). wp. skip.
-progress. progress. 
-rewrite pairS in H7.
-smt. 
+progress. rewrite pairS in H7. smt. 
 qed.
 
 
@@ -356,8 +334,7 @@ import RealOrder Bigreal.
 
 local lemma g_bad_pr2 &m mrel:
   Pr[G_bad(MD,LRO).main(mrel) @ &m: (MD.d) \in (map fst G_bad.mqs) ] <= (qH%r / (supp_size rt_distr)%r).
-proof. byphoare =>//.
-proc.  inline*.
+proof. byphoare =>//. proc. inline*.
 swap 16 -1.
 swap 9 6.
 swap 7 7.
@@ -367,10 +344,9 @@ wp.
   have zz : phoare[ MD(Log(LRO)).B.commit : Log.qs = [] ==> size Log.qs <= qH] <= (
   qH%r / (supp_size rt_distr)%r / (qH%r / (supp_size rt_distr)%r)).
    rewrite q. conseq pr2_ax. 
-call zz. wp.  rnd. wp. rnd. call (_:true). wp. skip.  auto.
+call zz. wp.  rnd. wp. rnd. call (_:true). wp. skip =>//. 
 seq 1 : (MD.d \in unzip1 G_bad.mqs) (qH%r / (supp_size rt_distr)%r) 1%r 1%r 0%r. 
-auto.
-rnd. skip. progress. 
+auto. rnd. skip. progress. 
 have ->: (mem (unzip1 Log.qs{hr})) = (mem (undup (unzip1 Log.qs{hr}))). smt.
 rewrite mu_mem_uniq. smt. 
 have iz : size (undup (unzip1 Log.qs{hr})) <= qH. smt.
@@ -382,17 +358,16 @@ apply (ler_trans (BRA.big predT (fun (x : openingkey) => 1%r / (supp_size rt_dis
    (undup (unzip1 Log.qs{hr})))). apply ok.
 clear ok.
 rewrite sumr_const. smt.
-wp. rnd.  wp.  call (_:true ==> true). auto. wp.  skip. auto.
-hoare. wp. rnd.  wp.  call (_:true ==> true). auto. wp.  skip. auto.
+wp. rnd.  wp.  call (_:true ==> true). auto. wp. skip=>//. 
+hoare. wp. rnd.  wp.  call (_:true ==> true). auto. wp.  skip=>//.
 auto. hoare. simplify. auto. simplify. 
 have qz : hoare[ BA(Log(LRO)).commit : Log.qs = [] ==> size Log.qs <= qH ].
 conseq pr2_ax.
-call qz. wp. rnd. wp. rnd. call (_:true). wp. skip. auto.
-progress.
+call qz. wp. rnd. wp. rnd. call (_:true). wp. skip =>//. progress.
 have ->: (qH%r * qH%r /
  ((supp_size rt_distr)%r * (qH%r * (supp_size rt_distr)%r) / (supp_size rt_distr)%r)) =
 (qH%r * qH%r /
-((supp_size rt_distr)%r * qH%r)).  smt. smt.  
+((supp_size rt_distr)%r * qH%r)). smt. smt.  
 qed.
 
 
@@ -403,19 +378,16 @@ local lemma zozzo &m rel :
       /\ G0H.c <> G0H.c'
       /\ lookupc G0H.mm G0H.c' = false 
       /\ lookupc LRO.m G0H.c'  = true ].
-proof. byequiv =>//.
-proc. inline*. wp. rnd. wp. call (_: ={glob LRO, glob Log}). sim.
+proof. byequiv =>//. proc. inline*. wp. rnd. wp. call (_: ={glob LRO, glob Log}). sim.
 wp. call (_: ={glob LRO, glob Log}). sim. wp. rnd. wp. rnd.  rnd. call (_:true). wp.
-skip. progress.  smt.   smt. smt. smt.
+skip. progress. smt. smt. smt. smt.
 qed.
-
 
 
 local lemma qqq rel &m : 
  Pr[G0(MD,LRO).main(rel) @ &m: res] =
   Pr[SNM_ROM_G0(RomCom(Log(LRO)),BA(Log(LRO))).main(rel) @ &m: res /\ !hasdup LRO.m /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' ] .
-proof. byequiv =>//. proc. 
-  inline*. wp. rnd.  wp.  call (_: ={glob LRO, glob Log}).
+proof. byequiv =>//. proc. inline*. wp. rnd. wp. call (_: ={glob LRO, glob Log}).
 proc. inline*. wp. rnd. wp. skip. progress.
   wp. call (_: ={glob LRO, glob Log}). sim. wp. rnd. wp. rnd.
   wp. rnd. call (_:true). wp. skip. timeout 20. smt.
@@ -426,13 +398,13 @@ local lemma SNM_ROM_BadCall &m rel :
  Pr[SNM_ROM_G0(RomCom(Log(LRO)),BA(Log(LRO))).main(rel) @ &m: res /\ !hasdup LRO.m /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' ]
   <= Pr[G1'(MD,LRO).main(rel) @ &m: res]
    + Pr[G_bad(MD,LRO).main(rel) @ &m: res].
-proof.  rewrite - qqq .  
-apply (ROM_BadCall MD). 
+proof.
+rewrite - qqq. apply (ROM_BadCall MD). 
 progress. proc. wp. rnd. rnd. call (_:true ==> is_lossless res.`1).  
-proc*. call (BA_ll0 H). skip.  auto.
+proc*. call (BA_ll0 H). skip =>//.
 skip. progress. smt. auto.
-progress. proc. inline*. call (_:true). apply BA_ll1. wp. skip. auto.
-progress. proc. inline*. wp. call H0. wp.  call (_:true). apply BA_ll2. skip. auto.
+progress. proc. inline*. call (_:true). apply BA_ll1. wp. skip=>//.
+progress. proc. inline*. wp. call H0. wp. call (_:true). apply BA_ll2. skip=>//.
 progress. apply dout_distr_ll. smt.
 qed.
 
@@ -440,28 +412,27 @@ qed.
 
 local lemma Cql'' &m rel : 
   Pr[G1'(MD,LRO).main(rel) @ &m:  G1'.mm.[G1'.x] = None /\ !sbset G1'.mm LRO.m ] = 0%r.
-proof. byphoare =>//.
-hoare. proc.
+proof. byphoare =>//. hoare. proc.
 seq 7 : (G1'.mm = LRO.m). auto. simplify.  auto. 
 case (G1'.mm.[G1'.x] = None).
 sp 1. elim*. progress.
 conseq (_: sbset G1'.mm LRO.m /\  G1'.mm.[G1'.x] = None  ==> _). smt.
-inline*. wp.  rnd. wp.  
+inline*. wp. rnd. wp.  
 call (_: (sbset G1'.mm LRO.m) ). 
 proc. inline*. wp. rnd. wp. skip. smt. 
 wp. skip. smt.
-inline*.  wp. rnd.  wp . call (_:true). auto. 
-wp.  skip. progress. smt. smt. 
+inline*.  wp. rnd. wp. call (_:true). auto. 
+wp. skip. progress. smt. smt. 
 qed.
 
 
 local lemma Cql' &m rel : 
   Pr[G1'(MD,LRO).main(rel) @ &m:  res /\ lookupc G1'.mm G1'.z = true /\ !sbset G1'.mm LRO.m ] 
  <=   0%r .
-proof. rewrite - (Cql'' &m rel). byequiv =>//. proc . inline*. wp. rnd.  wp.
+proof. rewrite - (Cql'' &m rel). byequiv =>//. proc. inline*. wp. rnd. wp.
 call (_: ={glob LRO, glob Log, G1'.mm, G1'.x, G1'.z,G1'.y}). sim.
 wp. call (_: ={glob LRO, glob Log, G1'.mm, G1'.x, G1'.z,G1'.y}). sim.
-wp.  rnd. wp.  rnd. rnd. call (_:true). wp. skip . progress. 
+wp. rnd. wp. rnd. rnd. call (_:true). wp. skip. progress. 
 qed.
 
 
@@ -472,10 +443,10 @@ local lemma Cql &m rel :
 proof. rewrite Pr[mu_split (sbset G1'.mm LRO.m)].
 have ->: Pr[G1'(MD, LRO).main(rel) @ &m :  (res /\ lookupc G1'.mm G1'.z = true) /\ ! sbset G1'.mm LRO.m]
  = Pr[G1'(MD, LRO).main(rel) @ &m : res /\ lookupc G1'.mm G1'.z = true /\ !sbset G1'.mm LRO.m].
-rewrite Pr[mu_eq]. auto. auto.
+rewrite Pr[mu_eq] =>//. 
 have ->: Pr[G1'(MD, LRO).main(rel) @ &m :  (res /\ lookupc G1'.mm G1'.z = true) /\ sbset G1'.mm LRO.m]
  = Pr[G1'(MD, LRO).main(rel) @ &m : res /\ lookupc G1'.mm G1'.z = true /\ sbset G1'.mm LRO.m].
-rewrite Pr[mu_eq]. auto. auto.
+rewrite Pr[mu_eq] =>//. 
 have ->: Pr[G1'(MD, LRO).main(rel) @ &m : res /\ lookupc G1'.mm G1'.z = true /\ !sbset G1'.mm LRO.m] = 0%r.
 smt. auto.
 qed.
@@ -491,15 +462,13 @@ byequiv (_: (={glob G1', glob Log, glob LRO, glob MD, arg}) ==> _) =>//.
 proc.
 seq 9 9 : (={glob G1', glob Log, glob LRO, glob MD} /\ (G1'.mm.[G1'.x] = None => sbset G1'.mm LRO.m){1} ). 
 seq 6 6 : (={glob G1', glob Log, glob LRO, glob MD}). inline*.
-wp.   call (_: ={glob LRO, glob Log, glob G1', MD.c', MD.d,MD.d',MD.rel,MD.cc}  ). 
-sim.
-wp.  rnd.  wp.  rnd. rnd. call (_: ={glob LRO, glob Log, glob G1', MD.c', MD.d,MD.d',MD.rel,MD.cc}). wp. skip. progress.
-wp.  skip. progress. smt.
+wp. call (_: ={glob LRO, glob Log, glob G1', MD.c', MD.d,MD.d',MD.rel,MD.cc}). sim.
+wp. rnd. wp. rnd. rnd. call (_: ={glob LRO, glob Log, glob G1', MD.c', MD.d,MD.d',MD.rel,MD.cc}). wp. skip. progress.
+wp. skip. progress. smt.
 case (G1'.mm{1}.[G1'.x{1}] = None).
 conseq (_: (={glob G1', glob Log, glob LRO, glob MD} /\ (sbset G1'.mm LRO.m){1} /\ G1'.mm.[G1'.x]{1} = None  ) ==> _). smt.
-inline*.
-  wp.  rnd. wp. call (_: ={glob LRO, glob Log, MD.c', MD.d,MD.d',MD.rel,MD.cc,  G1'.mm} /\ (sbset G1'.mm LRO.m){1} /\ (G1'.mm.[G1'.x]{1} = None) ).
-proc. inline*.   wp.  rnd. wp. skip. progress. smt.
+inline*. wp. rnd. wp. call (_: ={glob LRO, glob Log, MD.c', MD.d,MD.d',MD.rel,MD.cc,  G1'.mm} /\ (sbset G1'.mm LRO.m){1} /\ (G1'.mm.[G1'.x]{1} = None) ).
+proc. inline*. wp. rnd. wp. skip. progress. smt.
 wp. skip. progress.
 have ->: (solve G1'.mm{2}
      (oget
@@ -508,8 +477,7 @@ have ->: (solve G1'.mm{2}
 rewrite (thm1 (result_R.`1, result_R.`2) G1'.mm{2}). smt.
   have ->: m_R.[result_R.`1, result_R.`2 <- r1L].[result_R.`1, result_R.`2]
    = Some r1L. smt. simplify.
-have : exists x, G1'.mm{2}.[x] = Some r1L.
-apply thm2. smt.
+have : exists x, G1'.mm{2}.[x] = Some r1L. apply thm2. smt.
 elim. move => x ass.
 have f0 : m_R.[result_R.`1, result_R.`2 <- r1L].[x] = Some r1L.
 clear H13 H12 H11 H10 H9 H8. smt.
@@ -518,19 +486,16 @@ apply (thm3 (m_R.[result_R.`1, result_R.`2 <- r1L]) r1L ). simplify. smt. apply 
 smt. rewrite - f1. apply ass. 
 have : exists y, m_R.[result_R.`1, result_R.`2] = Some y. apply thm5.
 rewrite /P' in H10. 
-have : exists x, G1'.mm{2}.[x] = Some r1L.
-apply thm2. smt.
+have : exists x, G1'.mm{2}.[x] = Some r1L. apply thm2. smt.
 elim. move => x ass.
 have f0 : m_R.[result_R.`1, result_R.`2 <- r1L].[x] = Some r1L.
-clear H13 H12 H11 H10 H9 H8. smt.
-smt. 
-
+clear H13 H12 H11 H10 H9 H8. smt. smt. 
 elim. move => y yeq.
 have : lookupc G1'.mm{2} y = true.
-  have ->: y = (oget m_R.[result_R.`1, result_R.`2]). rewrite yeq. auto.
-auto. rewrite yeq. smt. 
-   move => ff. print thm1. smt. auto. smt.
-have : exists y, m_R.[result_R.`1, result_R.`2] = Some y. apply thm5. auto.
+  have ->: y = (oget m_R.[result_R.`1, result_R.`2]). rewrite yeq =>//.
+rewrite yeq. smt. 
+   move => ff. smt. auto. smt.
+have : exists y, m_R.[result_R.`1, result_R.`2] = Some y. apply thm5 =>//. 
 elim. move => y yeq.
 have : exists z, G1'.mm{2}.[z] = Some y.
 apply (thm2 G1'.mm{2}). smt.
@@ -541,10 +506,10 @@ move => qq.
 have : z = (result_R.`1, result_R.`2). smt.
 move => fff. rewrite - fff. smt.
 conseq (_: G1'.mm{1}.[G1'.x{1}] <> None /\ G1'.mm{2}.[G1'.x{2}] <> None ==> (G1'.mm{1}.[G1'.x{1}] = None){1} <=> G1'.mm{2}.[G1'.x{2}] = None{2} ). smt. smt.
-inline*.  wp.  rnd.  wp.  call (_: true ==> true).
-proc*. call {1} (_:true ==> true). apply (BA_ll2 (Log(LRO)) ).  proc. inline*. auto. smt.
-call {2} (_:true ==> true). apply (BA_ll2 (Log(LRO)) ).  proc. inline*. auto. smt. auto.
-wp. skip.  progress. 
+inline*. wp. rnd. wp. call (_: true ==> true).
+proc*. call {1} (_:true ==> true). apply (BA_ll2 (Log(LRO)) ). proc. inline*. auto. smt.
+call {2} (_:true ==> true). apply (BA_ll2 (Log(LRO)) ). proc. inline*. auto. smt. auto.
+wp. skip. progress. 
 qed.
   
 
@@ -564,13 +529,11 @@ local module MySim = {
     G1'.mm <- empty;
     d    <$ rt_distr;
     c    <$ dout_distr;
-
     c'   <- B.commit(c, rel);
     G1'.mm <- LRO.m;
     (d', m') <- (head witness (solve G1'.mm c'));
     return (m',c',d');
- }
-  
+  }
 }.
 
 
@@ -578,20 +541,18 @@ local lemma zhok  &m mrel :
  Pr[G1'(MD,LRO).main(mrel) @ &m:  res /\ lookupc G1'.mm G1'.z = true
            /\ sbset G1'.mm LRO.m /\ (head witness (solve G1'.mm G1'.z)) = (MD.d',MD.m') ]
  <= Pr[SNM_ROM_G1(RomCom(Log(LRO)), BA(LRO), MySim ).main(mrel) @ &m: res  ].
-proof. byequiv =>//. proc.
-inline MD(Log(LRO)).a3.
+proof. byequiv =>//. proc. inline MD(Log(LRO)).a3.
 seq 11 5 : (MD.m{1} = SNM_ROM_G1.m{2} /\ (((head witness (solve G1'.mm G1'.z)) = (MD.d',MD.m')){1} => MD.m'{1} = SNM_ROM_G1.m'{2}) /\ MD.rel{1} = rel{2}) .
-inline*. 
-wp.  call {1} (_: true ==> true). 
-apply (BA_ll2 (Log(LRO)) ).  proc. inline*. auto. smt.
-wp.  call (_: ={glob LRO}). sim. wp. rnd. wp. rnd.  wp. rnd.  call (_:true). wp. skip.
+inline*. wp. call {1} (_: true ==> true). 
+apply (BA_ll2 (Log(LRO)) ). proc. inline*. auto. smt.
+wp. call (_: ={glob LRO}). sim. wp. rnd. wp. rnd.  wp. rnd.  call (_:true). wp. skip.
 progress. smt.
 case ((head witness (solve G1'.mm{1} G1'.z{1}) = (MD.d'{1}, MD.m'{1}))).
 conseq (_:  (MD.m{1} = SNM_ROM_G1.m{2} /\  
     MD.m'{1} = SNM_ROM_G1.m'{2}) /\
    MD.rel{1}  = rel{2} /\ (head witness (solve G1'.mm{1} G1'.z{1}) = (MD.d'{1}, MD.m'{1}))  ==> _).
 smt.
-inline*. wp.  rnd {1}. wp.  skip. progress. smt.
+inline*. wp. rnd {1}. wp. skip. progress. smt.
 inline*. wp. rnd {1}. wp. skip. smt. 
 qed.
 
@@ -611,10 +572,10 @@ have ->: Pr[SNM_ROM_G0(RomCom(Log(LRO)),BA(Log(LRO))).main(rel) @ &m: res /\ siz
 rewrite Pr[mu_split SNM_ROM_G0.c = SNM_ROM_G0.c']. 
  have ->: Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    (res /\ size Log.qs <= qH) /\ SNM_ROM_G0.c <> SNM_ROM_G0.c'] = Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
-   res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c']. rewrite Pr[mu_eq]. auto. auto.
+   res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c']. rewrite Pr[mu_eq] =>//.
  have ->: Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    (res /\ size Log.qs <= qH) /\ SNM_ROM_G0.c = SNM_ROM_G0.c'] = Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
-   res /\ size Log.qs <= qH /\ SNM_ROM_G0.c = SNM_ROM_G0.c']. rewrite Pr[mu_eq]. auto. auto. auto.
+   res /\ size Log.qs <= qH /\ SNM_ROM_G0.c = SNM_ROM_G0.c']. rewrite Pr[mu_eq] =>//. auto.
   have : Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    res /\ size Log.qs <= qH /\ SNM_ROM_G0.c = SNM_ROM_G0.c'] <= (qH%r * qH%r) / (supp_size dout_distr)%r.
    apply (ler_trans Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
@@ -623,8 +584,7 @@ rewrite Pr[mu_split SNM_ROM_G0.c = SNM_ROM_G0.c'].
 move => f.
 apply (ler_trans  (qH%r * qH%r / (supp_size dout_distr)%r +
 Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
-   res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c']) ) . smt.
-clear f.
+   res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c']) ). smt. clear f.
 apply (zzz (qH%r * qH%r / (supp_size dout_distr)%r)). 
 have ->: qH%r * qH%r / (supp_size dout_distr)%r +
 Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
@@ -654,19 +614,18 @@ have ->: Pr[SNM_ROM_G0( RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    (res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c') /\
    hasdup LRO.m] = Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' /\
-   hasdup LRO.m]. rewrite Pr[mu_eq]. auto. auto.
+   hasdup LRO.m]. rewrite Pr[mu_eq] =>//. 
 have ->: Pr[SNM_ROM_G0( RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    (res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c') /\
    !hasdup LRO.m] = Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' /\
-   !hasdup LRO.m]. rewrite Pr[mu_eq]. auto. auto. auto.
+   !hasdup LRO.m]. rewrite Pr[mu_eq] =>//. auto.
 have : Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    res /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' /\ hasdup LRO.m]
  <= qH%r * qH%r / (supp_size dout_distr)%r .
 apply (ler_trans Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
-             size Log.qs <= qH  /\ hasdup LRO.m]). rewrite Pr[mu_sub]. auto. auto.
-apply Aql.
-move => f.
+             size Log.qs <= qH  /\ hasdup LRO.m]). rewrite Pr[mu_sub] =>//.
+apply Aql. move => f.
 apply (ler_trans (qH%r * qH%r / (supp_size dout_distr)%r +
 Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    res /\
@@ -697,7 +656,7 @@ apply (ler_trans (Pr[G1'(MD,LRO).main(rel) @ &m: res]
 have ->: Pr[SNM_ROM_G0(RomCom(Log(LRO)), BA(Log(LRO))).main(rel) @ &m :
    res /\
    size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' /\ ! hasdup LRO.m] =   Pr[SNM_ROM_G0( RomCom(Log(LRO)),BA(Log(LRO))).main(rel) @ &m: res /\ !hasdup LRO.m /\ size Log.qs <= qH /\ SNM_ROM_G0.c <> SNM_ROM_G0.c' ].
-rewrite Pr[mu_eq]. auto. auto.
+rewrite Pr[mu_eq] =>//.
 apply SNM_ROM_BadCall.
 apply (zzz Pr[G_bad(MD, LRO).main(rel) @ &m : res]).
 have ->: Pr[G1'(MD, LRO).main(rel) @ &m : res] +
@@ -733,9 +692,8 @@ have ->: qH%r / (supp_size dout_distr)%r +
 Pr[G1'(MD, LRO).main(rel) @ &m :   res /\   lookupc G1'.mm G1'.z = true /\   sbset G1'.mm LRO.m /\ head witness (solve G1'.mm G1'.z) = (MD.d', MD.m')] -
 qH%r / (supp_size dout_distr)%r = Pr[G1'(MD, LRO).main(rel) @ &m :   res /\   lookupc G1'.mm G1'.z = true /\   sbset G1'.mm LRO.m /\ head witness (solve G1'.mm G1'.z) = (MD.d', MD.m')]. smt.
 have ->: Pr[G1'(MD, LRO).main(rel) @ &m : res /\ lookupc G1'.mm G1'.z <> false] 
- = Pr[G1'(MD, LRO).main(rel) @ &m : res /\ lookupc G1'.mm G1'.z = true]. rewrite Pr[mu_eq]. smt. auto.
-rewrite Cql. rewrite Dql.
-auto.
+ = Pr[G1'(MD, LRO).main(rel) @ &m : res /\ lookupc G1'.mm G1'.z = true]. rewrite Pr[mu_eq] =>//. smt. 
+rewrite Cql. rewrite Dql =>//.
 qed.
 
 
