@@ -5,14 +5,13 @@ require import Distr AllCore.
 
 
 
-require  LRO.
 
 theory CrescenzoSNM.
 
 type message.
 require NSNM_Related.
 
-clone import NSNM_Related as NSNM_rel  with type value  <- unit,
+clone import NSNM_Related as NSNM_rel  with type value     <- unit,
                                            type message    <- message,
                                            type commitment <- unit,
                                            type openingkey <- message.
@@ -23,7 +22,6 @@ clone import CommitmentProtocol as CP with type value      <- unit,
                                            type message    <- message,
                                            type commitment <- unit,
                                            type openingkey <- message.
-
 
 
 module ConstComm = {
@@ -47,6 +45,7 @@ declare module A : AdvSNM.
 
 lemma lll &m : 
  Pr[ C_SEG0(ConstComm,A).main(ler,md) @ &m : res ] = 0%r.
+proof.
 byphoare =>//. hoare. proc.
 inline*. wp.  
 conseq (_: _ ==> true).
@@ -56,8 +55,9 @@ qed.
 
 
 (* ConstComm satisfies the non-malleability by Crescenzo et al. *)
-lemma cresc_const_comm &m : forall (S <: Simulator),  Pr[ C_SEG0(ConstComm,A).main(ler,md) @ &m : res ]
- - Pr[ C_SEG1(ConstComm,S).main(ler,md) @ &m : res ] <= 0%r.
+lemma cresc_const_comm &m : forall (S <: Simulator),
+   Pr[ C_SEG0(ConstComm,A).main(ler,md) @ &m : res ] -
+   Pr[ C_SEG1(ConstComm,S).main(ler,md) @ &m : res ] <= 0%r.
 proof. move => S. rewrite lll. smt. 
 qed.
 
@@ -65,7 +65,7 @@ end section.
 end CrescenzoSNM.
  
 
-theory AirtaSNM.
+theory AritaSNM.
 
 type message = bool.
 
@@ -114,7 +114,8 @@ op myrel = fun (m1 m2 : message) => m1 <> m2.
 op myd = duniform [false;true].
 
 lemma qq &m : Pr[ A_SEG0(AritaA).main(myrel,myd) @ &m : res ] = 1%r.
-proof. byphoare (_: arg = (myrel, myd) ==> _) =>//. proc.
+proof.
+byphoare (_: arg = (myrel, myd) ==> _) =>//. proc.
 inline*. rewrite /Ver. wp.  simplify.
 seq 3 : (rel = myrel /\ md = myd).
 rnd. rnd. rnd. skip. auto. rnd.  rnd.  rnd.  skip.  progress. smt. smt. smt. skip .  progress.
@@ -131,7 +132,8 @@ axiom S_ll : islossless S.simulate.
 
 
 lemma pp &m : Pr[ A_SEG1(S).main(myrel,myd) @ &m : res ] = 1%r/2%r.
-proof. byphoare (_: arg = (myrel, myd) ==> _) =>//. proc.
+proof.
+byphoare (_: arg = (myrel, myd) ==> _) =>//. proc.
 swap 2 1.
 seq 2 :  true 1%r (1%r/2%r)   (1%r/2%r) 0%r (rel = myrel /\ md = myd) .
 call (_:true). rnd. skip.  auto.
@@ -153,4 +155,10 @@ lemma arita_const_comm &m : Pr[ A_SEG0(AritaA).main(myrel,myd) @ &m : res ]
 proof. smt. qed.
 
 end section.
-end AirtaSNM.
+end AritaSNM.
+
+
+
+
+ 
+

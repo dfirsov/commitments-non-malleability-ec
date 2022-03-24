@@ -32,7 +32,7 @@ module type AdvSNM = {
 
 
 module type Simulator = {
-  proc simulate(pk : value, r : snm_relation) : message *  commitment * openingkey
+  proc simulate(pk : value, r : snm_relation, dd : message distr) : message *  commitment * openingkey
 }.
 
 
@@ -58,7 +58,7 @@ module SG1(A : AdvSNM, S : Simulator) = {
     pk                 <$ Dpk; 
     (md, mrel)         <- A.init(pk,h);
     m                  <$ md;
-    (m', c',  d')      <- S.simulate(pk, mrel);
+    (m', c',  d')      <- S.simulate(pk, mrel, md);
     return mrel m m';
   }
 }.
@@ -98,7 +98,7 @@ module SEG1(CS:CommitmentScheme, A : AdvSNM, S : Simulator) = {
     pk                 <- CS.gen(); 
     (ssnmdistr, rel)   <- A.init(pk, h);
     m                  <$ ssnmdistr;
-    (m',c,d)           <- S.simulate(pk, rel);
+    (m',c,d)           <- S.simulate(pk, rel, ssnmdistr);
     return rel m m';
   }
 }.

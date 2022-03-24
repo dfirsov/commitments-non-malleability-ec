@@ -20,10 +20,10 @@ canonically generated commitment-opening pair. *)
 module UnpredGame(G : Guesser) = {
   proc main() = {
     var pk,m,l,c,d,rs;
-    pk                 <$ Dpk;
+    pk      <$ Dpk;
     (m , l) <- G.guess(pk); 
-    rs <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    rs      <$ rndstr;
+    (c, d)  <- Com pk rs m;
     return (c,d) \in l;
   }
 }.

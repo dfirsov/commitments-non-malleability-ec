@@ -105,7 +105,7 @@ module SNM_ROM_G1(CS:CommitmentScheme, A : AdvSNM, S : Simulator) = {
     pk                 <- CS.gen(); 
     (ssnmdistr, rel)   <- A.init(pk, h);
     m                  <$ ssnmdistr;
-    (m',c,d)           <- S.simulate(pk, rel);
+    (m',c,d)           <- S.simulate(pk, rel, ssnmdistr);
     return rel m m';
   }
 }.
@@ -525,7 +525,7 @@ local module MySim = {
   var m' : message
   var c,c' : commitment
   var d,d' : openingkey
-  proc simulate(pk : unit, rel : snm_relation) = {
+  proc simulate(pk : unit, rel : snm_relation, dd : message distr) = {
     G1'.mm <- empty;
     d    <$ rt_distr;
     c    <$ dout_distr;

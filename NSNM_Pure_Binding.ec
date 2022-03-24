@@ -10,7 +10,6 @@ require import NSNM_Definition.
 require CommitmentUnpredictability.
 
 
-
 theory NSNM_binding_theory.
 
 
@@ -30,7 +29,7 @@ clone import CommitmentUnpredictability as CU with type value      <- value,
                                                    op Com <- Com,
                                                    op rndstr <- rndstr.
                                            
-                                           
+                                       
 clone import D1D2 with type message <- message.
 
 
@@ -47,6 +46,7 @@ module BindingExperiment(A:Binder) = {
       return Ver x (m,  (c, d)) /\ Ver x (m', (c, d')) /\ (m <> m');        
   }
 }.
+
 
 (* transformation of a binder-adversary into NM-adversary *)
 module B(U : Binder) = {
@@ -79,14 +79,14 @@ module B(U : Binder) = {
 }.
 
 
-(* transformation of a binder-adversary into unpredictability adversary *)
+(* transformation of a binder-adversary into unpredictability-adversary *)
 module BG(U : Binder) = {
   proc guess(pk : value) : message * (commitment * openingkey) list = {
     var rs,m,m1,m2,c,c3,d1,d2,d3;
     (c,m1,d1,m2,d2) <@ U.bind(pk);
-    m                  <$ duniform [m1;m2];
-    rs <$ rndstr;
-    (c3,d3) <- Com pk rs m1;   
+    m               <$ duniform [m1;m2];
+    rs              <$ rndstr;
+    (c3,d3)         <- Com pk rs m1;   
     return (m , [(c,d1); (c,d2); (c3,d3)]);
   }
 }.
@@ -118,7 +118,7 @@ module G1(A : AdvSNM, S : Simulator) = {
     pk                 <$ Dpk; 
     (md, mrel)         <- A.init(pk,h);
     m                  <$ md;
-    (m', c',  d')      <- S.simulate(pk, mrel);
+    (m', c',  d')      <- S.simulate(pk, mrel, md);
     return mrel m m';
   }
 }.
@@ -144,31 +144,28 @@ axiom Ag_ll : islossless A.bind.
 (* the adversaries who return same message twice do not win the binding game *)
 axiom ba : hoare [ A.bind : true ==> res.`2 <> res.`4 ]. 
 
-
 local lemma ss &m h : Pr[G0(B(A)).main(h) @ &m : true ] = 1%r.
 proof. byphoare =>//.
 proc. inline*. wp. rnd. 
 conseq (_: _ ==> true). smt.
 wp.  rnd. 
 conseq (_: _ ==> true). smt.
-rnd. 
-simplify.
-wp. 
+rnd. simplify. wp. 
 call Ag_ll. wp. rnd.
 skip. progress. smt.
 smt. 
 qed.
 
 
-
 local lemma step1 &m h : 
-  Pr[ G0(B(A)).main(h) @ &m : B.vers  /\ (G0.c, G0.d) <>  (G0.c', G0.d')  ]
-   = Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers  /\ (G0.c, G0.d) <>  (G0.c', G0.d')  ]. 
+  Pr[ G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d') ]
+   = Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d') ]. 
 proof. byequiv =>//. 
 proc. inline*. wp. rnd. wp.
 rnd.  rnd. wp. call (_:true). wp. rnd. 
 skip. progress. smt. smt.
 qed.
+
 
 local lemma step2 &m h : 
   Pr[ BEP(A).main() @ &m : res ] 
@@ -177,8 +174,6 @@ proof. byequiv =>//.
 proc. inline*. wp. rnd {2}. wp. rnd{2}. rnd{2}.
 wp. call (_:true). wp.  rnd. skip. progress. smt. smt.
 qed.
-
-
 
 
 local module G5 = {
@@ -207,31 +202,30 @@ local module G5 = {
   }
 }.
 
+
+
 local lemma jkk &m h : 
   Pr[ G5.main(h) @ &m : !B.vers /\ G5.m = G5.m' ]
  =  Pr[ G5.main(h) @ &m : !B.vers ] * 1%r/2%r .
-byphoare (_: (glob A) = (glob A){m} ==> _) =>//. proc. 
+proof. byphoare (_: (glob A) = (glob A){m} ==> _) =>//. proc. 
 inline B(A).commit. 
 inline B(A).decommit. wp. 
 conseq (_: _ ==> !B.vers /\ G5.m = B.m1). smt. 
 inline B(A).init.
 pose z := Pr[ G5.main(h) @ &m : !B.vers ].
 seq 1 : (!B.vers) z (1%r/2%r)  (1%r/2%r) 0%r ( B.m1 <> B.m2). 
-inline*. wp. call ba. wp. rnd. skip. auto.
+inline*. wp. call ba. wp. rnd. skip =>//.
 have phr : phoare[ G5.bra : (glob A) = (glob A){m}  ==> !B.vers ]
              = Pr[G5.main(h) @ &m : !B.vers].
-bypr. progress. byequiv. proc.
+bypr. progress. byequiv =>//. proc.
 inline*. wp. rnd{2}. wp. rnd{2}. rnd{2}. wp.
-call (_:true). rnd.  skip. progress. auto. auto.  smt.
-smt. auto.  auto.
-call phr. skip.  auto.
-rnd. 
+call (_:true). rnd.  skip. progress. smt. smt. 
+call phr. skip =>//. rnd. 
 conseq (_: _ ==> (!B.vers /\ G5.m = B.m1)). smt.
 wp. rnd. conseq (_: _ ==> (!B.vers /\ G5.m = B.m1)). smt.
-rnd. wp. skip. progress. rewrite H0 =>//=. 
-rewrite duniform1E. smt.
-simplify.
-hoare. rnd.  wp.  rnd. rnd. wp.  skip. progress. 
+rnd. skip. progress. rewrite H0 =>//=. 
+rewrite duniform1E. smt. simplify.
+hoare. rnd.  wp.  rnd. rnd. skip. progress. 
 smt. smt. 
 qed.
 
@@ -256,7 +250,7 @@ qed.
 local lemma jkk_fin &m h : 
   1%r/2%r  * Pr[ G0(B(A)).main(h) @ &m : !B.vers ] 
   = Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' ].
-smt.
+proof. smt.
 qed.
 
 
@@ -280,39 +274,38 @@ rewrite Pr[mu_split (G0.c, G0.d) = (G0.c', G0.d')].
    (!B.vers /\ G0.m = G0.m') /\ (G0.c, G0.d) = (G0.c', G0.d')]
   = Pr[G0(B(A)).main(h) @ &m :
    !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')].
- rewrite Pr[mu_eq]. auto. auto.
+ rewrite Pr[mu_eq] =>//.
   have ->: Pr[G0(B(A)).main(h) @ &m :
    (!B.vers /\ G0.m = G0.m') /\ (G0.c, G0.d) <> (G0.c', G0.d')]
    = Pr[G0(B(A)).main(h) @ &m :
    !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) <> (G0.c', G0.d')].
-  rewrite Pr[mu_eq]. auto. auto. auto.  
+  rewrite Pr[mu_eq] =>//. auto.  
 have ->: Pr[G0(B(A)).main(h) @ &m :
    !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) <> (G0.c', G0.d')]
   = Pr[G0(B(A)).main(h) @ &m : res /\ !B.vers].
-byequiv.  proc. 
+byequiv =>//. proc. 
 inline*. wp. rnd. wp. rnd. rnd. wp. 
 call (_:true). wp. rnd. skip. progress.
-smt. smt. smt. auto. auto. smt.
+smt. smt. 
 qed.
 
 
+local lemma zzz (a b c : real) : a <= c => a - b <= c - b.
+proof. smt. qed.  
 
-local lemma zzz (a b c : real) : a <= c =>
- a - b <= c - b. smt. qed.  
-
+ 
 local lemma step6 &m h: 
  1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
  - 2%r * Pr[ G0(B(A)).main(h) @ &m : B.vers /\ (G0.c,G0.d) = (G0.c',G0.d') ] 
  <= Pr[ G0(B(A)).main(h) @ &m : res ] - 1%r/2%r
  + Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c,G0.d) = (G0.c',G0.d') ].
-proof. have ->: 
- Pr[ G0(B(A)).main(h) @ &m : res ]
- =  Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers ]
+proof.
+have ->: Pr[ G0(B(A)).main(h) @ &m : res ] = Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers ]
  + Pr[ G0(B(A)).main(h) @ &m : res /\ !B.vers ].
-rewrite Pr[mu_split B.vers]. auto.
+rewrite Pr[mu_split B.vers] =>//. 
 have ->: Pr[ G0(B(A)).main(h) @ &m : res /\ !B.vers ]
  = 1%r/2%r * Pr[ G0(B(A)).main(h) @ &m : !B.vers ]
- -  Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c,G0.d) = (G0.c',G0.d') ].
+ - Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c,G0.d) = (G0.c',G0.d') ].
 apply step3.
 have ->: Pr[G0(B(A)).main(h) @ &m : res /\ B.vers]
  = Pr[ G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c,G0.d) = (G0.c',G0.d') ]
@@ -321,19 +314,19 @@ rewrite Pr[mu_split (G0.c,G0.d) = (G0.c',G0.d')].
   have ->: 
    Pr[G0(B(A)).main(h) @ &m : (res /\ B.vers) /\ (G0.c, G0.d) = (G0.c', G0.d')]
    = Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')].
-  rewrite Pr[mu_eq]. auto. auto.
+  rewrite Pr[mu_eq] =>//. 
   have ->: Pr[G0(B(A)).main(h) @ &m : (res /\ B.vers) /\ (G0.c, G0.d) <> (G0.c', G0.d')] 
       = Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')].
-  rewrite Pr[mu_eq]. auto. auto. auto.
+  rewrite Pr[mu_eq] =>//. auto. 
 have ->: Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')]
  = Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')].
-rewrite step1. auto.
+rewrite step1 =>//. 
 have ->: Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')] +
 Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')] +
 (1%r / 2%r * Pr[G0(B(A)).main(h) @ &m : !B.vers] -
  Pr[G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')]) -
 1%r / 2%r = 
- Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')] +
+Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')] +
 Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')] +
 1%r / 2%r * Pr[G0(B(A)).main(h) @ &m : !B.vers] - 1%r / 2%r
 - Pr[G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')].
@@ -350,7 +343,7 @@ have ->: (Pr[G0(B(A)).main(h) @ &m : !B.vers] - 1%r)
 rewrite - (ss &m h).
  have : Pr[G0(B(A)).main(h) @ &m : true]
   = Pr[G0(B(A)).main(h) @ &m : B.vers] + Pr[G0(B(A)).main(h) @ &m : !B.vers].
-  rewrite Pr[mu_split B.vers]. auto.
+  rewrite Pr[mu_split B.vers] =>//. 
 smt.
 have ->: Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')] +
 Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')] +
@@ -360,35 +353,20 @@ Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')] -
 1%r / 2%r * Pr[G0(B(A)).main(h) @ &m : B.vers]. smt.
 have ->: Pr[G0(B(A)).main(h) @ &m : B.vers]
 = Pr[BEP(A).main() @ &m : res].
-rewrite (step2 &m h). auto.
-have ->: Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')] = 0%r. 
-byphoare. hoare. conseq (_: true ==> res => (G0.c, G0.d) <> (G0.c', G0.d')) . smt.
-proc. inline*. wp. rnd. wp.  rnd. rnd. wp.  call (_:true). wp. rnd.
-skip. progress. smt. auto.
-have f : Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')]
- <= Pr[BEP(A).main() @ &m : res].
-rewrite (step2 &m h). rewrite Pr[mu_sub]. auto. auto.
-simplify.
-have ff : (Pr[BEP(A).main() @ &m : res] / 2%r -
-2%r * Pr[G0(B(A)).main(h) @ &m : B.vers /\ G0.c = G0.c' /\ G0.d = G0.d']) 
- + Pr[G0(B(A)).main(h) @ &m : B.vers /\ G0.c = G0.c' /\ G0.d = G0.d']
-  <=
-(Pr[G0(B(A)).main(h) @ &m : B.vers /\ ! (G0.c = G0.c' /\ G0.d = G0.d')] -
-Pr[BEP(A).main() @ &m : res] / 2%r)
- + Pr[G0(B(A)).main(h) @ &m : B.vers /\ G0.c = G0.c' /\ G0.d = G0.d'].
-  have ->: 
-  (Pr[G0(B(A)).main(h) @ &m : B.vers /\ ! (G0.c = G0.c' /\ G0.d = G0.d')] -
-Pr[BEP(A).main() @ &m : res] / 2%r)
- + Pr[G0(B(A)).main(h) @ &m : B.vers /\ G0.c = G0.c' /\ G0.d = G0.d']
-  = Pr[BEP(A).main() @ &m : res] / 2%r.
-have : Pr[G0(B(A)).main(h) @ &m : B.vers /\ ! (G0.c = G0.c' /\ G0.d = G0.d')]
- + Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c = G0.c' /\ G0.d = G0.d')]
- = Pr[BEP(A).main() @ &m : res]. rewrite (step2 &m h).
-  have ->: Pr[G0(B(A)).main(h) @ &m : B.vers]
-  = Pr[G0(B(A)).main(h) @ &m : B.vers /\ ! (G0.c = G0.c' /\ G0.d = G0.d')] +
-  Pr[G0(B(A)).main(h) @ &m : B.vers /\ G0.c = G0.c' /\ G0.d = G0.d'].
-  rewrite Pr[mu_split (G0.c = G0.c' /\ G0.d = G0.d')]. smt. auto.
-smt. smt. smt.
+rewrite (step2 &m h) =>//.
+have ->:
+Pr[G0(B(A)).main(h) @ &m : res /\ B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')] = 0%r. 
+byphoare =>//. hoare. conseq (_: true ==> res => (G0.c, G0.d) <> (G0.c', G0.d')).
+smt.
+proc. inline*. wp. rnd. wp.  rnd. rnd. wp. call (_:true). wp. rnd.
+skip. progress. 
+have ->: (Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')]) = 
+Pr[G0(B(A)).main(h) @ &m : B.vers] - Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')].
+have fq: Pr[G0(B(A)).main(h) @ &m : B.vers] = Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) <> (G0.c', G0.d')] +
+Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')].
+  rewrite Pr[mu_split (G0.c, G0.d) = (G0.c', G0.d')] =>//. smt. 
+rewrite fq. smt. 
+rewrite -(step2 &m h). progress. smt.  
 qed.
 
 
@@ -398,16 +376,16 @@ proof. move => S. byphoare (_: arg = h ==> _) =>//.
 proc. inline*.
 swap 8 1. 
 seq 5 : (B.m1 <> B.m2) (1%r/2%r) .
-wp. call (_: true). wp. rnd. skip. auto.
-simplify. wp. 
+wp. call (_: true). wp. rnd. skip =>//.
+simplify. 
 conseq (_: true ==> B.m1 <> B.m2). auto.
 sp.
 conseq (_: _ ==>   m = m'). smt.
-rnd. call (_:true). wp. skip. progress.
+rnd. call (_:true). skip. progress.
 rewrite duniform1E_uniq. smt. simplify. smt.
-wp. hoare.
+hoare.
 simplify. call (_:true ==> res.`2 <> res.`4). apply ba.
-wp. rnd.  skip. auto. auto. 
+wp. rnd. skip =>//. auto.  
 qed.
 
 
@@ -417,7 +395,7 @@ import RealOrder.
 
 local lemma bme (c a b : real) : 
  a + c <= b + c => a <= b.
-smt. qed.
+proof. smt. qed.
 
   
 local lemma final_binding &m h :  forall (S <: Simulator {B, A}),
@@ -426,16 +404,17 @@ local lemma final_binding &m h :  forall (S <: Simulator {B, A}),
  <= Pr[ SG0(B(A)).main(h) @ &m : res ] - Pr[ SG1(B(A),S).main(h) @ &m : res ].
 proof. move => S. 
 have ->: Pr[ SG0(B(A)).main(h) @ &m : res ] = Pr[ G0(B(A)).main(h) @ &m : res ].
-byequiv. sim. auto. auto.
+byequiv =>//. sim. 
 have ->: Pr[ SG1(B(A),S).main(h) @ &m : res ] = Pr[ G1(B(A),S).main(h) @ &m : res ].
-byequiv. sim. auto. auto.
-have f1 :  1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
- - 2%r * Pr[ G0(B(A)).main(h) @ &m : B.vers /\ (G0.c,G0.d) = (G0.c',G0.d') ] 
- <= Pr[ G0(B(A)).main(h) @ &m : res ] - 1%r/2%r
- + Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c,G0.d) = (G0.c',G0.d') ]. apply step6.
+byequiv =>//. sim. 
+have f1 :  1%r/2%r * Pr[ BEP(A).main() @ &m : res ] 
+- 2%r * Pr[ G0(B(A)).main(h) @ &m : B.vers /\ (G0.c,G0.d) = (G0.c',G0.d') ]  
+<= Pr[ G0(B(A)).main(h) @ &m : res ] - 1%r/2%r 
++ Pr[ G0(B(A)).main(h) @ &m : !B.vers /\ G0.m = G0.m' /\ (G0.c,G0.d) = (G0.c',G0.d') ]. 
+apply step6. 
 have f2 : Pr[G0(B(A)).main(h) @ &m : B.vers /\ (G0.c, G0.d) = (G0.c', G0.d')]
  <= Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')].
-rewrite Pr[mu_sub]. auto. auto.
+rewrite Pr[mu_sub] =>//.
 have f3 :  1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
  - 2%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ] 
  <= 1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
@@ -445,23 +424,23 @@ have f4 : 1%r / 2%r * Pr[BEP(A).main() @ &m : res]
             - 2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')] <=
     Pr[G0(B(A)).main(h) @ &m : res] - 1%r / 2%r +
     Pr[G0(B(A)).main(h) @ &m :
-       !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')].
+       !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')]. 
 apply (ler_trans (1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
  - 2%r * Pr[ G0(B(A)).main(h) @ &m : B.vers /\ (G0.c,G0.d) = (G0.c',G0.d') ]) 
       (1%r / 2%r * Pr[BEP(A).main() @ &m : res]
-         - 2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')]) ). 
-auto. auto. clear f3 f1.
+        - 2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')]) ). 
+        auto. auto. clear f1 f3.
 have f5 : Pr[G0(B(A)).main(h) @ &m :
        !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')]
- <= Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')].
-rewrite Pr[mu_sub]. auto. auto.
+ <= Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')]. 
+rewrite Pr[mu_sub] =>//.
 have f6 : Pr[G0(B(A)).main(h) @ &m : res] - 1%r / 2%r +
     Pr[G0(B(A)).main(h) @ &m :
        !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')]
  <= Pr[G0(B(A)).main(h) @ &m : res] - 1%r / 2%r +
     Pr[G0(B(A)).main(h) @ &m :
        !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')].
-smt. clear f5. 
+smt. clear f5.     
 have f7 : 1%r / 2%r * Pr[BEP(A).main() @ &m : res] -
     2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')] <=
     Pr[G0(B(A)).main(h) @ &m : res] - 1%r / 2%r +
@@ -470,7 +449,7 @@ apply (ler_trans (
     Pr[G0(B(A)).main(h) @ &m : res] - 1%r / 2%r +
     Pr[G0(B(A)).main(h) @ &m :
        !B.vers /\ G0.m = G0.m' /\ (G0.c, G0.d) = (G0.c', G0.d')]) ).
-auto. smt. clear f6 f4.
+auto. smt. clear f4.
 have f4 : Pr[ G1(B(A), S).main(h) @ &m : res ] <= 1%r/2%r.
 apply (G1ub &m h S).
 have f9 : 
@@ -479,10 +458,11 @@ have f9 :
 smt.
 apply (ler_trans (Pr[G0(B(A)).main(h) @ &m : res] - 1%r/2%r) ).
 clear f4.
-have ->: 1%r / 2%r * Pr[BEP(A).main() @ &m : res] -
-3%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')]
- = 1%r / 2%r * Pr[BEP(A).main() @ &m : res] - 2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')]
- - Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')].
+have ->: 1%r / 2%r * Pr[BEP(A).main() @ &m : res] - 
+  3%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')] =
+  1%r / 2%r * Pr[BEP(A).main() @ &m : res] -
+  2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')] -
+  Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')].
 smt. apply (bme (Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')])).
 have ->:
  1%r / 2%r * Pr[BEP(A).main() @ &m : res] -
@@ -491,7 +471,7 @@ Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')] +
 Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')] 
  = 1%r / 2%r * Pr[BEP(A).main() @ &m : res] -
 2%r * Pr[G0(B(A)).main(h) @ &m : (G0.c, G0.d) = (G0.c', G0.d')].
-smt. apply f7. smt.
+smt. apply f7. apply f9.
 qed.
 
 
@@ -500,7 +480,7 @@ local lemma nsnm_pure_binding' &m h :  forall (S <: Simulator {B, A}),
   2%r * (Pr[ SG0(B(A)).main(h) @ &m : res ] - Pr[ SG1(B(A),S).main(h) @ &m : res ]) 
    + 6%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ].
 proof. move => S.
-have ->:   Pr[ BindingExperiment(A).main() @ &m : res ] = Pr[ BEP(A).main() @ &m : res ]. 
+have ->: Pr[ BindingExperiment(A).main() @ &m : res ] = Pr[ BEP(A).main() @ &m : res ]. 
 byequiv =>//. sim. 
 have :  1%r/2%r * Pr[ BEP(A).main() @ &m : res ]
  - 3%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ] 
@@ -516,8 +496,7 @@ local lemma guessprob &m h :
 proof. byequiv =>//.
 proc. inline*. swap {1} [14..15] -5.
 wp. rnd.  wp. rnd. wp. rnd.  wp.  call (_:true).
-wp.   rnd. 
-skip. progress.  smt.
+wp. rnd. skip. progress. smt.
 qed.
 
 
@@ -526,10 +505,10 @@ lemma nsnm_pure_binding &m h :  forall (S <: Simulator {B, A}),
   Pr[ BindingExperiment(A).main() @ &m : res ] <= 
   2%r * (Pr[ SG0(B(A)).main(h) @ &m : res ] - Pr[ SG1(B(A),S).main(h) @ &m : res ]) 
    + 6%r * Pr[ UnpredGame(BG(A)).main() @ &m : res ].
-proof.  move => S.
-have f :   Pr[ BindingExperiment(A).main() @ &m : res ] <= 
+proof. move => S.
+have f : Pr[ BindingExperiment(A).main() @ &m : res ] <= 
   2%r * (Pr[ SG0(B(A)).main(h) @ &m : res ] - Pr[ SG1(B(A),S).main(h) @ &m : res ]) 
-   + 6%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ].
+  + 6%r * Pr[ G0(B(A)).main(h) @ &m : (G0.c,G0.d) = (G0.c',G0.d') ].
 apply (nsnm_pure_binding' &m h S).
 smt.
 qed.
@@ -540,3 +519,4 @@ end section.
 
 
 end NSNM_binding_theory.
+

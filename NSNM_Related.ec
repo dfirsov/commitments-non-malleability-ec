@@ -3,11 +3,10 @@ require import AllCore List Distr Commitment.
 require  NSNM_Definition.
 
 
-
 type value, commitment, openingkey, message, advice.
 type snm_relation = message -> message -> bool.
 
-op rndstr : (bool list) distr. (* randmoness *)
+op rndstr : (bool list) distr. (* randomness *)
 op Com (x : value) (r : bool list) (m : message) : commitment * openingkey.
 op Ver : value -> message * (commitment * openingkey) -> bool.
 op Dpk : value distr.
@@ -33,7 +32,7 @@ clone import CommitmentProtocol as CP with type value      <- value,
 
 
 
-(* Creszenzo style Simulation-based Non-Malleaability  *)
+(* Creszenzo style simulation-based non-malleability  *)
 module C_SEG0(CS:CommitmentScheme, A : AdvSNM) = {
   proc main(rel : snm_relation, md : message distr) : bool = {
     var pk, c,c',d,d',m,m',v;    
@@ -53,7 +52,7 @@ module C_SEG1(CS:CommitmentScheme, S : Simulator) = {
     var m,m',pk,c,d;    
     pk                 <- CS.gen(); 
     m                  <$ md;
-    (m',c,d)           <- S.simulate(pk, rel);
+    (m',c,d)           <- S.simulate(pk, rel, md);
     return rel m m';
   }
 }.
@@ -87,37 +86,36 @@ module H(A : AdvSNM) = {
 
 
 local lemma qq1 &m : Pr[ C_SEG0(C,A).main(ler,md) @ &m : res ] <= Pr[ SEG0(C,H(A)).main(witness) @ &m : res ].
-proof. byequiv.
-proc. inline*. wp.
+proof.
+byequiv =>//. proc. inline*. 
 call (_:true).
 wp.  call (_:true).
 wp. call (_:true).
 wp.  call (_:true).
-wp. rnd. wp. call (_:true). skip. progress.
+rnd. wp. call (_:true). skip. progress.
 smt.
-auto. auto.
 qed.
 
 
 local lemma qq2 &m : Pr[ C_SEG1(C,S).main(ler,md) @ &m : res ] = Pr[ SEG1(C,H(A),S).main(witness) @ &m : res ].
-proof. byequiv.
-proc. inline*. wp.
+proof.
+byequiv =>//. proc. inline*. 
 call (_:true).
 rnd. wp.   call (_:true).
 skip. progress.
-auto. auto.
 qed.
 
 
 lemma cresc_to_nsnm  &m :
   Pr[ C_SEG0(C,A).main(ler,md) @ &m : res ] - Pr[ C_SEG1(C,S).main(ler,md) @ &m : res ]
  <= Pr[ SEG0(C,H(A)).main(witness) @ &m : res ] - Pr[ SEG1(C,H(A),S).main(witness) @ &m : res ].
+proof.
 smt.
 qed.
 end section.
 
 
-(* Arita style simulation-based non-malleaability  *)
+(* Arita style simulation-based non-malleability  *)
 module A_SEG0(A : AdvSNM) = {
   proc main(rel : snm_relation, md : message distr) : bool = {
     var rs,pk, c,c',d,d',m,m',v;    
@@ -138,7 +136,7 @@ module A_SEG1(S : Simulator) = {
     var m,m',pk,c,d;    
     pk                 <$ Dpk; 
     m                  <$ md;
-    (m',c,d)           <- S.simulate(pk, rel);
+    (m',c,d)           <- S.simulate(pk, rel, md);
     return rel m m' /\ m <> m';
   }
 }.
@@ -173,37 +171,39 @@ module AT(A : AdvSNM) = {
 
 
 
-
 axiom S_inj pk m1 m2 c2 d2 r :  pk \in Dpk =>
   m1 <> m2 => (c2, d2) = Com pk r m2 =>
   Ver pk (m1, (c2, d2)) = false.
 
 
 local lemma qq1 &m : Pr[ A_SEG0(A).main(aler,amd) @ &m : res ] <= Pr[ SG0(AT(A)).main(witness) @ &m : res ].
-proof. byequiv.
-proc. inline*. wp.
-call (_:true).
+proof.
+byequiv =>//. proc. inline*.
+wp. call (_:true).
 wp.  call (_:true).
 wp. rnd. rnd. 
-wp. rnd. wp. skip. progress.
+wp. rnd. skip. progress.
 smt.
-auto. auto.
 qed.
 
 
-
 local lemma qq2 &m : Pr[ A_SEG1(S).main(aler,amd) @ &m : res ] = Pr[ SG1(AT(A),S).main(witness) @ &m : res ].
-proof. byequiv.
-proc. inline*. wp.
+proof.
+byequiv=>//. proc. inline*. 
 call (_:true). rnd. wp. rnd.
- skip. progress.
-smt. auto. auto.
+skip. progress.
+smt. 
 qed.
 
 lemma arita_to_nsnm  &m :
   Pr[ A_SEG0(A).main(aler,amd) @ &m : res ] - Pr[ A_SEG1(S).main(aler,amd) @ &m : res ]
  <= Pr[ SG0(AT(A)).main(witness) @ &m : res ] - Pr[ SG1(AT(A),S).main(witness) @ &m : res ].
+proof.
 smt.
 qed.
 
 end section.
+
+
+
+
