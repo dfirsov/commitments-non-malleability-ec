@@ -510,9 +510,26 @@ have H : (Pr[HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2] +
      (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')]) -
  1%r).
 apply obv. split.
-apply f1.
-apply f2.
-smt.
+apply f1. apply f2.
+have ->: (1%r / 2%r *
+(Pr[HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2] +
+ Pr[HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2] - 1%r) <=
+1%r / 2%r *
+(Pr[MyTail(H(A)).main(false, h) @ &m : res /\ H.m1 <> H.m2] +
+ Pr[MyTail(H(A)).main(false, h) @ &m :
+    (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] +
+ (Pr[MyTail(H(A)).main(true, h) @ &m : res /\ H.m1 <> H.m2] +
+  Pr[MyTail(H(A)).main(true, h) @ &m :
+     (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')]) -
+ 1%r)) = ((Pr[HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2] +
+ Pr[HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2] - 1%r) <=
+(Pr[MyTail(H(A)).main(false, h) @ &m : res /\ H.m1 <> H.m2] +
+ Pr[MyTail(H(A)).main(false, h) @ &m :
+    (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] +
+ (Pr[MyTail(H(A)).main(true, h) @ &m : res /\ H.m1 <> H.m2] +
+  Pr[MyTail(H(A)).main(true, h) @ &m :
+     (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')]) -
+ 1%r)). smt. apply H.
 qed.
 
 
