@@ -11,18 +11,17 @@ clone import CommitmentProtocol as CP with type value      <- value,
                                            type openingkey <- openingkey.
 
 
-op rndstr : (bool list) distr. (* randomness *)
-op Com (x : value) (r : bool list) (m : message) : commitment * openingkey.
+op Com (pk : value) (m : message) : (commitment * openingkey) distr.
 op Ver : value -> message * (commitment * openingkey) -> bool.
 op Dpk : value distr.
+op mdistr : message distr.
 
 (* the key generation is efficient *)
 axiom Dpk_ll : is_lossless Dpk. 
-(* the randomness sampling is efficient *)
-axiom rndstr_ll : is_lossless rndstr. 
+(* the commitment sampling is efficient *)
+axiom Com_ll pk m : is_lossless (Com pk m).
 (* the commitment scheme is sound (i.e., functional) *)
-axiom S_correct pk r : pk \in Dpk => forall m, Ver pk (m, (Com pk r m)). 
-
+axiom S_correct pk m c d: pk \in Dpk => (c,d) \in Com pk m => Ver pk (m, (c, d)).
 
 module type AdvSNM = {
   proc init(pk : value, h : advice) : (message distr) * snm_relation
@@ -38,12 +37,11 @@ module type Simulator = {
 
 module SG0(A : AdvSNM) = {
   proc main(h : advice) : bool = {
-    var m,m',c,c',d,d',pk, rs, md, rel;
+    var m,m',c,c',d,d',pk, md, rel;
     pk                 <$ Dpk;
     (md, rel)          <- A.init(pk,h);
     m                  <$ md;
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d); 
       return Ver pk (m', (c', d'))

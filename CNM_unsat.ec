@@ -6,7 +6,7 @@ require WholeMsg D1D2.
 
 theory NM.
 
-type value,  message,  commitment, randomness, openingkey.
+type value,  message,  commitment, openingkey.
 type relation = message -> message list -> bool.
 
 clone import CommitmentProtocol as CP with type value      <- value,
@@ -15,26 +15,18 @@ clone import CommitmentProtocol as CP with type value      <- value,
                                            type openingkey <- openingkey.
 
 op Dpk : value distr.
-op Dr : randomness distr.
-op Com (pk : value) (r : randomness) (m : message) : commitment * openingkey.
+op Com (pk : value) (m : message) : (commitment * openingkey) distr.
 op Ver : value -> message * (commitment * openingkey) -> bool.
 op mdistr : message distr.
 
 abbrev (\notin) ['a] (z : 'a) (s : 'a list) : bool = !mem s z.
 
-axiom S_correct pk r : pk \in Dpk => forall m, Ver pk (m, (Com pk r m)).
-axiom S_inj pk r m1 m2: pk \in Dpk => m1 <> m2 => Ver pk (m1, (Com pk r m2)) = false.
+axiom S_correct pk m c d: pk \in Dpk => (c,d) \in Com pk m => Ver pk (m, (c, d)).
+axiom S_inj pk m1 m2 c d: pk \in Dpk => m1 <> m2 => (c,d) \in Com pk m2 => !Ver pk (m1, (c, d)).
 
+axiom Com_ll pk m : is_lossless (Com pk m).
 axiom Dpk_ll : is_lossless Dpk.
-axiom Dr_ll : is_lossless Dr.
 axiom mdistr_ll : is_lossless mdistr.
-
-op FaultyO (c : commitment) (pk : value) : openingkey.
-op FaultyM (c : commitment) (pk : value) : message.
-
-axiom F_correct c pk : 
-       pk \in Dpk => !Ver pk ((FaultyM c pk), (c, (FaultyO c pk))).
-
 
 module type AdvNNMO = {
   proc init(pk : value) : message distr
@@ -48,12 +40,11 @@ module NNMO_G0(A : AdvNNMO) = {
   var c : commitment
 
   proc main() : bool = {
-    var rel, pk, mdistr, r, d, cs, ds, ms;    
+    var rel, pk, mdistr, d, cs, ds, ms;    
     pk                 <$ Dpk;  
     mdistr             <- A.init(pk);
     m                  <$ mdistr;
-    r                  <$ Dr;
-    (c, d)             <- Com pk r m;
+    (c, d)             <$ Com pk m;
     (rel, cs)          <- A.commit(c);
     (ds, ms)           <- A.decommit(d);    
     return (forall x, x \in zip ms (zip cs ds) => Ver pk x)  
@@ -72,13 +63,12 @@ module NNMO_G1(A : AdvNNMO) = {
   var c : commitment
   
   proc main() : bool = {
-    var rel, pk, mdistr, r, d, cs, ds, ms;    
+    var rel, pk, mdistr, d, cs, ds, ms;    
     pk                 <$ Dpk;                    
     mdistr             <- A.init(pk);
     m                  <$ mdistr;
-    n                  <$ mdistr;  
-    r                  <$ Dr;     
-    (c, d)             <- Com pk r m;
+    n                  <$ mdistr;       
+    (c, d)             <$ Com pk m;
     (rel, cs)          <- A.commit(c);
     (ds, ms)           <- A.decommit(d);    
     return (forall x, x \in zip ms (zip cs ds) => Ver pk x)
@@ -125,20 +115,21 @@ module A : AdvNNMO = {
   }   
 
   proc commit(y : commitment) : relation * commitment list = {
-    var rr, rel;
+    var rel;
     
     c <- y;
-    rr <$ Dr;
-    (c', d') <- Com pk rr m1;    
+    (c', d') <$ Com pk m1;    
     rel <- fun (x : message) (xs : message list)
                      => x = m1 /\ head witness xs = m1;
     return (rel, [c']);
   }
 
   proc decommit(d : openingkey) : openingkey list * message list = {
-    return (if Ver pk (m1, (c, d))
-                 then ([d'], [m1])
-                 else ([(FaultyO c' pk)], [(FaultyM c' pk)]));  
+    var c2, d2;
+
+    (c2, d2) <$ Com pk m2;
+    return (if Ver pk (m1, (c, d)) then ([d'], [m1])
+                                   else ([d2], [m2]));  
   } 
 
 }.
@@ -157,14 +148,10 @@ have : m1 <> m2. apply m1_and_m2_diff.
 move => c => //=. rewrite b2i1 => //=. 
 rewrite eq_sym in b. rewrite b. rewrite b2i0 => //.  
 rewrite Dpk_ll => //.
-wp. rnd. wp. rnd. skip. progress. 
-rewrite Dr_ll => //. rewrite Dr_ll => //.  
-wp. rnd. wp. rnd. skip. progress. 
-rewrite H => //. 
-rewrite mu0_false. 
-progress. auto.    
-rewrite Dr_ll => //. 
-progress.
+wp. rnd. wp. rnd. wp. rnd. skip. progress. 
+rewrite Com_ll => //. rewrite Com_ll => //. rewrite Com_ll => //.
+hoare.
+wp. rnd. wp. rnd. wp. rnd. skip. progress. progress.
 qed.    
 
 
@@ -174,42 +161,33 @@ proof.
 have :  Pr[ NNMO_G0(A).main() @ &m : res ] = 
 Pr[ NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c <> A.c']. 
 byequiv(_: _ ==> _) => //. proc. inline*.
-wp.  rnd.  wp.  rnd.  rnd.  wp.  rnd. simplify.
-skip. progress.   
-have :  Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)). 
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. 
-move => h. 
-have : x \in
-    zip
-      (if Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)) 
-       then ([(Com pkL rrL m1).`2], [m1])
-       else ([FaultyO (Com pkL rrL m1).`1 pkL], [FaultyM (Com pkL rrL m1).`1 pkL])).`2
-      (zip [(Com pkL rrL m1).`1]
-         (if Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)) 
-          then ([(Com pkL rrL m1).`2], [m1])
-          else ([FaultyO (Com pkL rrL m1).`1 pkL], [FaultyM (Com pkL rrL m1).`1 pkL])).`1) =
-x \in zip ([(Com pkL rrL m1).`2], [m1]).`2 
-      (zip [(Com pkL rrL m1).`1]  ([(Com pkL rrL m1).`2], [m1]).`1).
-rewrite h => //=. progress.
-have ->: x =  (m1, ((Com pkL rrL m1).`1, (Com pkL rrL m1).`2)). rewrite -H9 H8. 
-have ->: ((Com pkL rrL m1).`1, (Com pkL rrL m1).`2) = Com pkL rrL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. 
-have :  Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)). 
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. rewrite b => //.
-have :  Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)). 
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. rewrite b => //.
-have :  Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)). 
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. rewrite b => //.
-move => h. rewrite h.
+wp.  rnd.  wp.  rnd.  wp. rnd.  rnd. wp. rnd. simplify.
+skip. progress.    
+have : Ver pkL (m1, (cdL.`1, cdL.`2)). 
+have : (c'd'L.`1, c'd'L.`2) \in Com pkL m1. rewrite -pairS =>//.
+rewrite S_correct. apply H. rewrite -pairS. apply H3. progress.
+move => h.
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H3. progress. 
+have : x \in zip
+       (if Ver pkL (m1, (cdL.`1, cdL.`2)) then ([c'd'L.`2], [m1])
+        else ([c2d2L.`2], [m2])).`2
+       (zip [c'd'L.`1]
+          (if Ver pkL (m1, (cdL.`1, cdL.`2)) then ([c'd'L.`2], [m1])
+           else ([c2d2L.`2], [m2])).`1) =
+x \in zip ([c'd'L.`2], [m1]).`2 (zip  [c'd'L.`1] ([c'd'L.`2], [m1]).`1 ).
+rewrite h => //=. progress.   
+have ->: x = (m1, (c'd'L.`1, c'd'L.`2)). rewrite -H12. apply H10.       
+rewrite S_correct. apply H. rewrite -pairS => //.
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H3. progress. 
+rewrite H10 =>//.
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H3. progress. 
+rewrite H10 =>//.
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H3. progress. 
+rewrite H10 =>//.         
 have : Pr[ NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 ] =
 Pr[ NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c = A.c' ] +  
 Pr[ NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c <> A.c'].
@@ -251,18 +229,13 @@ case (m1 = m2). progress.
 have : m1 <> m2. apply m1_and_m2_diff. progress.  progress. 
 rewrite eq_sym in H. rewrite H. 
 rewrite b2i0 b2i1 =>//.
-wp. rnd. wp. rnd. skip. progress. 
-rewrite Dr_ll =>//.
-rewrite Dr_ll =>//.
-wp. rnd. wp. rnd. skip. progress.  
-rewrite mu0_false. progress. reflexivity.
-rewrite Dr_ll =>//. progress.
+wp. rnd. wp. rnd. wp. rnd. skip. progress. 
+rewrite Com_ll =>//. rewrite Com_ll =>//. rewrite Com_ll =>//. 
 hoare.
-wp. rnd. wp. rnd. rnd.  skip. progress.
-rewrite  negb_and. case(NNMO_G1.m{hr} <> m1). 
-progress. simplify. move => h.
-progress.
-progress.
+wp. rnd. wp. rnd. wp. rnd. skip. progress.   
+progress. hoare.  
+wp. rnd. wp. rnd. wp. rnd. rnd. skip. progress. rewrite H.
+progress. progress. 
 qed. 
 
 
@@ -275,88 +248,35 @@ have : Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.
   Pr[ NNMO_G1(A).main() @ &m : res ].
 byequiv(_: _ ==> _) => //.
 proc. inline*.  
-wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
-skip. progress.   
-have : Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)).    
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. 
-have : x \in
-     zip
-       (if Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)) 
-        then ([(Com pkL rrL m1).`2], [m1])
-        else ([FaultyO (Com pkL rrL m1).`1 pkL], [FaultyM (Com pkL rrL m1).`1 pkL])).`2
-       (zip [(Com pkL rrL m1).`1]
-          (if Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)) 
-           then ([(Com pkL rrL m1).`2], [m1])
-           else ([FaultyO (Com pkL rrL m1).`1 pkL], [FaultyM (Com pkL rrL m1).`1 pkL])).`1) =
-x \in zip ([(Com pkL rrL m1).`2], [m1]).`2 
-      (zip [(Com pkL rrL m1).`1]  ([(Com pkL rrL m1).`2], [m1]).`1).
-rewrite b => //=.  move => c.  
-have : x \in zip ([(Com pkL rrL m1).`2], [m1]).`2 
-             (zip [(Com pkL rrL m1).`1]  ([(Com pkL rrL m1).`2], [m1]).`1) = 
-(x = (m1, ((Com pkL rrL m1).`1, (Com pkL rrL m1).`2))). progress. move => d. 
-have :  (x = (m1, ((Com pkL rrL m1).`1, (Com pkL rrL m1).`2))). rewrite -d -c H10. 
-move => r.  
-rewrite r. auto.
-have : Ver pkL (m1, ((Com pkL rrL m1).`1, (Com pkL rrL m1).`2)).    
-have ->: ((Com pkL rrL m1).`1, (Com pkL rrL m1).`2) = Com pkL rrL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. progress.
-have : Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)).   
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. rewrite b => //.
-have : Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)).   
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. rewrite b => //.
-have : Ver pkL (m1, ((Com pkL rL m1).`1, (Com pkL rL m1).`2)).   
-have ->: ((Com pkL rL m1).`1, (Com pkL rL m1).`2) = Com pkL rL m1. 
-rewrite -pairS => //.
-rewrite S_correct. apply H. move => b. rewrite b => //.
-clear H13 H12 H11 H10 H4 H2 H3 H8 H6 H2 H0.
+wp. rnd. wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
+skip. progress.    
+have : Ver pkL (m1, (cdL.`1, cdL.`2)). 
+have : (cdL.`1, cdL.`2) \in Com pkL m1. rewrite -pairS =>//.
+rewrite S_correct. apply H. rewrite -pairS. apply H5. progress. move => h1.  
+have : x \in zip
+       (if Ver pkL (m1, (cdL.`1, cdL.`2)) then ([c'd'L.`2], [m1])
+        else ([c2d2L.`2], [m2])).`2
+       (zip [c'd'L.`1]
+          (if Ver pkL (m1, (cdL.`1, cdL.`2)) then ([c'd'L.`2], [m1])
+           else ([c2d2L.`2], [m2])).`1) =
+       x \in zip ([c'd'L.`2], [m1]).`2 (zip [c'd'L.`1] ([c'd'L.`2], [m1]).`1 ).
+rewrite h1 =>//=. progress. 
+have : x = (m1, (c'd'L.`1, c'd'L.`2)). rewrite -H13. apply H12. progress.
+rewrite S_correct. apply H. rewrite -pairS. apply H7.
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H5. progress. rewrite H12 =>//.        
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H5. progress. rewrite H12 =>//.
+have :  Ver pkL (m1, (cdL.`1, cdL.`2)). rewrite S_correct. 
+apply H. rewrite -pairS. apply H5. progress. rewrite H12 =>//.      
 case (mL = m1).  auto.
-move => H14.
+move => H16.
 have :  mL = m2.
 rewrite supp_duniform mem_seq2 in H1. 
-elim H1 => [mL1 | mL2] => //.   
-clear H14.  
-move => mLem2.
-have f1 :
-  ((FaultyM (Com pkL rrL m1).`1 pkL), ((Com pkL rrL m1).`1, FaultyO (Com pkL rrL m1).`1 pkL)) \in
-      zip
-        (if Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) 
-         then ([(Com pkL rrL m1).`2], [m1])
-         else ([FaultyO (Com pkL rrL m1).`1 pkL], [FaultyM (Com pkL rrL m1).`1 pkL])).`2
-        (zip [(Com pkL rrL m1).`1]
-           (if Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) 
-            then ([(Com pkL rrL m1).`2], [m1])
-            else ([FaultyO (Com pkL rrL m1).`1 pkL], [FaultyM (Com pkL rrL m1).`1 pkL])).`1).
-case (Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = false). 
-move => q.  rewrite  q.
-simplify. auto.
-move => H10.  
-have ->: Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = true. 
-rewrite eqT. apply negbFE in H10. auto.
-progress. 
-have :  Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = false.
-have ->: ((Com pkL rL mL).`1, (Com pkL rL mL).`2) = Com pkL rL mL. 
-rewrite -pairS => //.
-rewrite mLem2. 
-rewrite S_inj. apply H. apply m1_and_m2_diff. progress.   
-move => H11. progress.
-have :  Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = false.
-have ->: ((Com pkL rL mL).`1, (Com pkL rL mL).`2) = Com pkL rL mL. 
-rewrite -pairS => //.
-rewrite mLem2. 
-rewrite S_inj. apply H. apply m1_and_m2_diff. progress.   
-move => H11. progress.
-have :  Ver pkL (m1, ((Com pkL rL mL).`1, (Com pkL rL mL).`2)) = false.
-have ->: ((Com pkL rL mL).`1, (Com pkL rL mL).`2) = Com pkL rL mL. 
-rewrite -pairS => //.
-rewrite mLem2.
-rewrite S_inj. apply H. apply m1_and_m2_diff. progress. progress. smt.        
-move => a. rewrite -a. 
+elim H1 => [mL1 | mL2] => //.     
+move => mLem2.   
+have : Ver pkL (mL, (cdL.`1, cdL.`2)). apply S_correct. apply H0. rewrite -pairS. rewrite H5.
+progress. rewrite mLem2. rewrite S_correct. apply H. rewrite -pairS. rewrite -mLem2 H5. smt. 
 have : Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 ] =
 Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c = A.c' ] +  
 Pr[ NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c'].
@@ -376,7 +296,7 @@ rewrite g1.
 have ->: 1%r / 4%r - 
 (1%r / 4%r - Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c']) =
 Pr[NNMO_G1(A).main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c <> A.c']. smt. 
-auto.  
+progress. rewrite H. auto.
 qed.
 
 
@@ -400,26 +320,24 @@ local module N1 = {
    var c : commitment
  
    proc main() : bool = {
-    var pk, x, mdistr, r, rr, rel0, rel, cs, ms, ds, d, y, d0;
+    var pk, x, mdistr, rel0, rel, cs, ms, ds, d, y, d0, c2, d2;
 
     pk <$ Dpk;                                                                                                  
     x <- pk;                                                                                                    
     A.pk <- x;                                                                                                  
     mdistr <- duniform [m1; m2];                                                                                
     NNMO_G1.m <$ mdistr;                                                                                        
-    NNMO_G1.n <$ mdistr;                                                                                        
-    r <$ Dr;                                                                                                    
-    (NNMO_G1.c, d) <- Com pk r NNMO_G1.m;                                                                       
+    NNMO_G1.n <$ mdistr;                                                                                                                                                                          
+    (NNMO_G1.c, d) <$ Com pk NNMO_G1.m;                                                                       
     y <- NNMO_G1.c;                                                                                             
-    A.c <- y;                                                                                                   
-    rr <$ Dr;                                                                                                   
-    (A.c', A.d') <- Com A.pk rr m1;                                                                             
+    A.c <- y;                                                                                                                                                                                                    
+    (A.c', A.d') <$ Com A.pk m1;                                                                             
     rel0 <- fun (x0 : message) (xs : message list) => x0 = m1 /\ head witness xs = m1;                          
     (rel, cs) <- (rel0, [A.c']);                                                                                
-    d0 <- d;                                                                                                    
-    (ds, ms) <- if Ver A.pk (m1, (A.c, d0)) 
-                then ([A.d'], [m1]) 
-                else ([FaultyO A.c' A.pk], [FaultyM A.c' A.pk]);
+    d0 <- d;                   
+    (c2, d2) <$ Com A.pk m2;             
+    (ds, ms) <- if Ver A.pk (m1, (A.c, d0)) then ([A.d'], [m1])        
+                                            else ([d2], [m2]);  
     return  (forall x, x \in zip ms (zip cs ds) => Ver pk x)
            /\ rel n ms
            /\ c \notin cs
@@ -431,7 +349,7 @@ local module N1 = {
 
 local module N2 = { 
    proc main() : bool = {
-    var pk, x, mdistr, r, rr, rel0, rel, cs, ms, ds, d, y, d0;
+    var pk, x, mdistr, rel0, rel, cs, ms, ds, d, y, d0, c2, d2;
 
     pk <$ Dpk;                                                                                                  
     x <- pk;                                                                                                    
@@ -439,18 +357,18 @@ local module N2 = {
     mdistr <- duniform [m1; m2];                                                                                
     NNMO_G1.m <$ mdistr;                                                                                        
     NNMO_G1.n <$ mdistr;                                                                                        
-    r <$ Dr;                                                                                                    
-    (NNMO_G1.c, d) <- Com pk r NNMO_G1.m;                                                                       
+                                                                                                
+    (NNMO_G1.c, d) <$ Com pk NNMO_G1.m;                                                                       
     y <- NNMO_G1.c;                                                                                             
     A.c <- y;                                                                                                   
-    rr <$ Dr;                                                                                                   
-    (A.c', A.d') <- Com A.pk rr m1;                                                                             
+                                                                                                  
+    (A.c', A.d') <$ Com A.pk m1;                                                                             
     rel0 <- fun (x0 : message) (xs : message list) => x0 = m1 /\ head witness xs = m1;                          
     (rel, cs) <- (rel0, [A.c']);                                                                                
-    d0 <- d;                                                                                                    
-    (ds, ms) <- if Ver A.pk (m1, (A.c, d0)) 
-                then ([A.d'], [m1]) 
-                else ([FaultyO A.c' A.pk], [FaultyM A.c' A.pk]);
+    d0 <- d;                   
+    (c2, d2) <$ Com A.pk m2;             
+    (ds, ms) <- if Ver A.pk (m1, (A.c, d0)) then ([A.d'], [m1])        
+                                            else ([d2], [m2]);  
     return   NNMO_G1.m = m1
             /\ NNMO_G1.n = m1
             /\ NNMO_G1.c = A.c';
@@ -462,14 +380,14 @@ local lemma n &m:
   Pr[ N2.main() @ &m : res].
 proof.
 byequiv =>//. proc. inline*. 
-wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
+wp. rnd. wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
 skip. progress.
 qed.
 
 
 local module N1T = {
    proc main(mm : message,a:unit) : bool = {
-    var pk, x, mdistr, r, rr, rel0, rel, cs, ms, ds, d, y, d0;
+    var pk, x, mdistr, rel0, rel, cs, ms, ds, d, y, d0, c2, d2;
 
     NNMO_G1.n <- mm;
     pk <$ Dpk;                                                                                                  
@@ -478,18 +396,18 @@ local module N1T = {
     mdistr <- duniform [m1; m2];                                                                                
     NNMO_G1.m <$ mdistr;                                                                                        
                                                                                         
-    r <$ Dr;                                                                                                    
-    (NNMO_G1.c, d) <- Com pk r NNMO_G1.m;                                                                       
+                                                                                                       
+    (NNMO_G1.c, d) <$ Com pk NNMO_G1.m;                                                                       
     y <- NNMO_G1.c;                                                                                             
     A.c <- y;                                                                                                   
-    rr <$ Dr;                                                                                                   
-    (A.c', A.d') <- Com A.pk rr m1;                                                                             
+                                                                                                      
+    (A.c', A.d') <$ Com A.pk m1;                                                                             
     rel0 <- fun (x0 : message) (xs : message list) => x0 = m1 /\ head witness xs = m1;                          
     (rel, cs) <- (rel0, [A.c']);                                                                                
-    d0 <- d;                                                                                                    
-    (ds, ms) <- if Ver A.pk (m1, (A.c, d0)) 
-                then ([A.d'], [m1]) 
-                else ([FaultyO A.c' A.pk], [FaultyM A.c' A.pk]);
+    d0 <- d;                   
+    (c2, d2) <$ Com A.pk m2;             
+    (ds, ms) <- if Ver A.pk (m1, (A.c, d0)) then ([A.d'], [m1])        
+                                            else ([d2], [m2]); 
     return   NNMO_G1.m = m1
             /\ NNMO_G1.n = m1
             /\ NNMO_G1.c = A.c';
@@ -512,7 +430,7 @@ local lemma gg &m:
   Pr[ N1.main() @ &m : NNMO_G1.m = m1 /\ NNMO_G1.n = m1 /\ NNMO_G1.c = A.c' ].
 proof.
 byequiv => //. proc. inline*. 
-wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
+wp. rnd. wp. rnd. wp. rnd. rnd. rnd. wp. rnd. 
 skip. progress.
 qed. 
 
@@ -522,15 +440,12 @@ local lemma gg1 &m :
   Pr[ NN.main() @ &m : res ].  
 proof.
 byequiv =>//. proc. inline*.
-wp. rnd. wp. rnd. rnd. 
+wp. rnd. wp. rnd.  
 swap{2} 4 4.
-swap{2} 3 4.
-swap{2} 2 4.
-wp. swap {2} 1 1. rnd. wp. rnd. 
+swap{2} 9 -1.
+swap{2} 2 6.
+wp. swap {2} 1 6. rnd. wp. rnd. rnd. wp. rnd. wp. 
 skip. progress. 
-case(mL = m1). progress. 
-case(nL = m1). progress.
-progress. progress.
 qed.  
 
 
@@ -545,13 +460,10 @@ byequiv => //. proc. inline*.
 wp. 
 swap{2} 4 4.
 swap{2} 3 4.
-swap{2} 2 4.
-rnd. wp. rnd. rnd. wp.  swap {2} 1 1. rnd. wp. rnd. 
+swap{2} 2 4. swap{2} 1 4. 
+rnd. wp. rnd. swap{1} 6 -1. wp. rnd. rnd. wp. rnd. wp. rnd. 
 skip. progress.
-case(mL = m1). progress. 
-case(nL = m1). progress.
-progress. progress.
-move => h. rewrite h.
+move => H. rewrite H.
 apply (splitcases N1T).       
 qed.
  
@@ -574,11 +486,11 @@ have ->: Pr[N1T.main(m2,tt) @ &m : res] = 0%r.
 byphoare(_: arg = (m2, tt) ==> _) => //. hoare. 
 proc. 
 inline*. 
-wp. rnd. wp. rnd. rnd. wp. rnd. wp.
+wp. rnd. wp. rnd. wp. rnd. rnd. wp. rnd. wp. 
 skip. progress.
 rewrite !negb_and.   
 have : m1 <> m2. apply m1_and_m2_diff. rewrite eq_sym.
-move => H3. rewrite H3. progress. 
+move => H4. rewrite H4. progress. 
 apply invr0. 
 qed.
 
@@ -588,12 +500,10 @@ module Q = {
   var c, c' : commitment
 
   proc main(m : message, a : unit) : bool = {
-    var pk, r1, r2, d, d';    
+    var pk, d, d';    
     pk                 <$ Dpk;  
-    r1                 <$ Dr;
-    (c, d)             <- Com pk r1 m;
-    r2                 <$ Dr;    
-    (c', d')           <- Com pk r2 m;
+    (c, d)             <$ Com pk m;
+    (c', d')           <$ Com pk m;
     
     return c = c'; 
   }
@@ -625,16 +535,22 @@ move => H. rewrite H.
 apply (splitcases Q).       
 qed. 
 
+
 local lemma h &m:
   Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c = A.c'] =
   1%r/2%r * Pr[ Q.main(m1,tt) @ &m : res]. 
 proof.
 have ->: Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c = A.c'] = Pr[ G.main() @ &m : res /\ G.m = m1 ].
 byequiv =>//. proc. inline*.
-wp. rnd. wp. rnd.
-swap {2} 4 -2.
-wp. swap {2} 1 1. rnd. wp. rnd.
-skip. progress.
+swap {2} 4 -3. swap {2} 4 -2. wp. 
+seq 5 3 : (pk{1} \in Dpk /\ ={pk} /\ A.pk{1} = pk{1} /\ mdistr{1} = duniform [m1; m2] /\ NNMO_G0.m{1} \in duniform [m1; m2] /\ G.m{2} \in duniform [m1; m2] /\ NNMO_G0.m{1} = G.m{2}).
+rnd. wp. rnd. skip. progress. sp.
+case(m{2} = m2). 
+conseq (_: _ ==>  NNMO_G0.m{1} <> m1 /\ G.m{2} <> m1). progress.
+rnd. wp. rnd {1}. wp. rnd.  skip. progress. rewrite Com_ll. rewrite eq_sym. apply m1_and_m2_diff.  
+rewrite eq_sym. apply m1_and_m2_diff.  
+rnd{1}. wp. rnd. wp. rnd. skip. progress. 
+smt. smt. rewrite Com_ll.   
 byphoare(_: (glob Q) = (glob Q){m} ==> _) =>//. 
 pose z := Pr[Q.main(m1,tt) @ &m : res].
 proc.  
@@ -643,23 +559,21 @@ rnd. skip. progress.
 rnd. skip. progress. 
 rewrite duniformE. progress. 
 case (m1 = m2). progress. 
-have : m1 <> m2. apply m1_and_m2_diff. progress.  progress. 
+have : m1 <> m2. apply m1_and_m2_diff. progress. progress. 
 rewrite eq_sym in H. rewrite H.
 rewrite b2i0 b2i1 =>//.
 have phr : phoare[ Q.main : arg = (m1,tt)  ==> res ] = Pr[Q.main(m1,tt) @ &m : res].
 bypr. progress. byequiv. proc.
-inline*. wp. rnd. wp. rnd. rnd. 
+rnd. rnd. rnd. 
 skip. progress.
 have : m{m0} = m1. rewrite H. rewrite fst_pair. auto.
-move => H6. rewrite H6. auto. auto. 
-progress.
+move => H6. rewrite H6. auto. smt. smt. smt. progress.
 call phr.
 skip. progress.
 hoare. call(_:true). wp. rnd. wp. rnd. rnd.
 skip. progress.
 skip. progress.
-have ->: G.m{hr} <> m1. apply H.
-auto.
+have ->: G.m{hr} <> m1. apply H. auto.
 progress.
 qed.
 
@@ -675,7 +589,7 @@ have ->:  Pr[N1T.main(m1,tt) @ &m : res] =
           Pr[NNMO_G0(A).main() @ &m : NNMO_G0.m = m1 /\ NNMO_G0.c = A.c'].  
 byequiv(_: _ ==> _) => //. proc. inline*. 
 wp. rnd. wp. rnd. 
-rnd. wp. rnd. wp. 
+wp. rnd. rnd. wp. rnd. wp. 
 skip. progress.  
 rewrite h.
 have ->: (inv 4%r - 1%r / 2%r * Pr[Q.main(m1,tt) @ &m : res] + 1%r / 2%r * Pr[Q.main(m1,tt) @ &m : res] / 2%r) = 
@@ -686,3 +600,6 @@ qed.
 
 end section.
 end CounterExample2.
+
+
+

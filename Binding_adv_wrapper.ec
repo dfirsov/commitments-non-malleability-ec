@@ -77,7 +77,7 @@ have : Pr[ BindingExperiment(A).main() @ &m : res ] <= Pr[ BindingExperiment(A'(
 have : Pr[ BindingExperiment(A'(A)).main() @ &m : res ] <= 
   2%r * (Pr[ SG0(B(A'(A))).main(h) @ &m : res ] - Pr[ SG1(B(A'(A)),S).main(h) @ &m : res ]) 
    + 6%r * Pr[ UnpredGame(BG(A'(A))).main() @ &m : res ].
-apply (nsnm_pure_binding_2 &m h S). progress.
+apply (final &m h S). progress.
 smt. 
 qed.
 

@@ -69,14 +69,14 @@ theory AritaSNM.
 
 type message = bool.
 
-
 op Dpk : unit distr.
 op Ver (pk : unit) (mum :  message * (unit * message)) :  bool 
  = mum.`1 = mum.`2.`2.
-op Com (x : unit) (r : bool list) (m : message) : unit * message
- = (tt,m).
+op Com : unit -> message -> (unit * message) distr.
 
 axiom Dpk_ll : is_lossless Dpk.
+axiom Com_ll (pk : unit) m: is_lossless (Com pk m).
+axiom Com_cc pk m c d : (c,d) \in (Com pk m) => (c,d) = (tt,m).
 
 clone import NSNM_Related as NSNM_rel  with type value  <- unit,
                                            type message    <- message,
@@ -116,13 +116,16 @@ op myd = duniform [false;true].
 lemma qq &m : Pr[ A_SEG0(AritaA).main(myrel,myd) @ &m : res ] = 1%r.
 proof.
 byphoare (_: arg = (myrel, myd) ==> _) =>//. proc.
-inline*. rewrite /Ver. wp.  simplify.
-seq 3 : (rel = myrel /\ md = myd).
-rnd. rnd. rnd. skip. auto. rnd.  rnd.  rnd.  skip.  progress. smt. smt. smt. skip .  progress.
-smt.
-smt. hoare. simplify.
-rnd. rnd. rnd. skip. auto. auto. 
+inline*.  wp.  rewrite/Ver. simplify.
+seq 2 : (rel = myrel /\ md = myd /\ m \in md /\ m = m).
+rnd. rnd. skip. auto.
+rnd. rnd. skip. progress. smt. apply Dpk_ll.  
+rnd(fun (cd : unit * message) => (cd.`1, cd.`2) = (tt, m)).
+skip. progress. smt. smt. smt. smt.   
+hoare. simplify.
+rnd. rnd. skip. auto. auto. 
 qed.
+
 
 section.
 

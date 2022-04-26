@@ -6,8 +6,7 @@ require  NSNM_Definition.
 type value, commitment, openingkey, message, advice.
 type snm_relation = message -> message -> bool.
 
-op rndstr : (bool list) distr. (* randomness *)
-op Com (x : value) (r : bool list) (m : message) : commitment * openingkey.
+op Com (pk : value) (m : message) : (commitment * openingkey) distr.
 op Ver : value -> message * (commitment * openingkey) -> bool.
 op Dpk : value distr.
 
@@ -16,7 +15,6 @@ clone export NSNM_Definition as NSNM_def  with type value  <- value,
                                            type message    <- message,
                                            type commitment <- commitment,
                                            type openingkey <- openingkey,
-                                           op rndstr <- rndstr,
                                            op Com <- Com,
                                            op Ver <- Ver,
                                            op Dpk <- Dpk.
@@ -45,8 +43,6 @@ module C_SEG0(CS:CommitmentScheme, A : AdvSNM) = {
     return v /\ rel m m' /\ c <> c';
   }
 }.
-
-
 module C_SEG1(CS:CommitmentScheme, S : Simulator) = {
   proc main(rel : snm_relation, md : message distr) : bool = {
     var m,m',pk,c,d;    
@@ -118,11 +114,10 @@ end section.
 (* Arita style simulation-based non-malleability  *)
 module A_SEG0(A : AdvSNM) = {
   proc main(rel : snm_relation, md : message distr) : bool = {
-    var rs,pk, c,c',d,d',m,m',v;    
+    var pk,c,c',d,d',m,m',v;    
     pk                 <$ Dpk; 
     m                  <$ md;
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d);    
     v                  <- Ver pk (m', (c',d'));
@@ -169,12 +164,7 @@ module AT(A : AdvSNM) = {
   }
 }.
 
-
-
-axiom S_inj pk m1 m2 c2 d2 r :  pk \in Dpk =>
-  m1 <> m2 => (c2, d2) = Com pk r m2 =>
-  Ver pk (m1, (c2, d2)) = false.
-
+axiom S_inj pk m1 m2 c d: pk \in Dpk => m1 <> m2 => (c,d) \in Com pk m2 => !Ver pk (m1, (c, d)).
 
 local lemma qq1 &m : Pr[ A_SEG0(A).main(aler,amd) @ &m : res ] <= Pr[ SG0(AT(A)).main(witness) @ &m : res ].
 proof.

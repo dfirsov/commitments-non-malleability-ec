@@ -25,8 +25,7 @@ clone import CommitmentUnpredictability as CU with type value  <- value,
                                            type openingkey     <- openingkey,
                                            op Dpk              <- Dpk,
                                            op Ver              <- Ver,
-                                           op Com              <- Com,
-                                           op rndstr           <- rndstr.
+                                           op Com              <- Com.
 
 
 clone import D1D2 with type message <- message.
@@ -40,11 +39,10 @@ clone import WholeMsg with type ain     <- advice,
 
 module HidingExperiment0 (U:Unhider) = {
   proc main() : bool = {
-    var c, d,b',x,r,m1,m2;
+    var c, d,b',x,m1,m2;
     x        <$ Dpk;
     (m1, m2) <@ U.choose(x);
-    r        <$ rndstr;
-    (c, d)   <- Com x r m1;
+    (c, d)   <$ Com x m1;
     b'       <@ U.guess(c);
     return b';
   }
@@ -53,11 +51,10 @@ module HidingExperiment0 (U:Unhider) = {
 
 module HidingExperiment1 (U:Unhider) = {
   proc main() : bool = {
-    var c, d,b',x,r,m1,m2;
+    var c, d,b',x,m1,m2;
     x        <$ Dpk;
     (m1, m2) <@ U.choose(x);
-    r        <$ rndstr;
-    (c, d)   <- Com x r m2;
+    (c, d)   <$ Com x m2;
     b'       <@ U.guess(c);
     return b';
   }
@@ -74,13 +71,11 @@ module HEP = {
 module HEPT0 (U:Unhider) = {
   var b' : bool
   var x : value
-  var r : bool list
   proc main() : bool = {
     var c, d;
     x        <$ Dpk;
     (HEP.m1, HEP.m2) <@ U.choose(x);
-    r <$ rndstr;
-    (c, d)   <- Com x r HEP.m1;
+    (c, d)   <$ Com x HEP.m1;
     b'       <@ U.guess(c);
     return b';
   }
@@ -90,13 +85,11 @@ module HEPT0 (U:Unhider) = {
 module HEPT1 (U:Unhider) = {
   var b' : bool
   var x : value
-  var r : bool list
   proc main() : bool = {
     var c, d;
     x        <$ Dpk;
     (HEP.m1, HEP.m2) <@ U.choose(x);
-    r <$ rndstr;
-    (c, d)   <- Com x r HEP.m2;
+    (c, d)   <$ Com x HEP.m2;
     b'       <@ U.guess(c);
     return b';
   }
@@ -118,10 +111,8 @@ module H(U : Unhider) = {
   }
 
   proc commit(z : commitment, r : snm_relation) : commitment  = {
-    var rs;
     b' <- U.guess(z);
-    rs <$ rndstr;
-    (c',d') <- Com pk rs (if b' then m2 else m1); 
+    (c',d') <$ Com pk (if b' then m2 else m1); 
     return c';
   }
 
@@ -140,12 +131,11 @@ local module SNM_G0'(A : AdvSNM) = {
   var m : message
 
   proc main(h : advice) : bool = {
-    var pk, c, d, c', d', m', rs, md, rel;
+    var pk, c, d, c', d', m', md, rel;
     pk                 <$ Dpk;
     (md, rel)          <- A.init(pk, h);
     m                  <$ md;
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d); 
       return Ver pk (m', (c', d'))
@@ -230,12 +220,11 @@ qed.
 local module SNM_G0z(A : AdvSNM) = {
   var m : message
   proc main(h : advice) : bool = {
-    var pk, c, d, c', d', m', rs, md, rel;
+    var pk, c, d, c', d', m', md, rel;
     pk                 <$ Dpk;
     (md, rel)          <- A.init(pk, h);
     m                  <- D1.sample(H.m1,H.m2);
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d); 
       return Ver pk (m', (c', d'))
@@ -247,12 +236,11 @@ local module SNM_G0z(A : AdvSNM) = {
 local module SNM_G0y(A : AdvSNM) = {
   var m : message
   proc main(h : advice) : bool = {
-    var pk, c, d, c', d', m', rs, md, rel;
+    var pk, c, d, c', d', m', md, rel;
     pk                 <$ Dpk;
     (md, rel)          <- A.init(pk,h);
     m                  <- D2.sample(H.m1,H.m2);
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d); 
       return Ver pk (m', (c', d'))
@@ -264,7 +252,7 @@ local module SNM_G0y(A : AdvSNM) = {
 
 
 local lemma qq &m h :
-  Pr[ SNM_G0'(H(A)).main(h) @ &m : res ]
+ Pr[ SNM_G0'(H(A)).main(h) @ &m : res ]
  = Pr[ SNM_G0z(H(A)).main(h) @ &m : res ].
 proof. byequiv (_: ={glob A, arg} ==> _) =>//. 
 proc. inline*.  sim. wp. rnd. wp. call (_:true).
@@ -286,12 +274,11 @@ local module MyTail(A : AdvSNM) = {
   var c,c' : commitment
   var d,d' : openingkey
   proc main(b : bool, h : advice) = {
-    var pk, m', rs, md, m, rel;
+    var pk, m', md, m, rel;
     pk                 <$ Dpk;
     (md, rel)          <- A.init(pk,h);
     m                  <- if b then H.m2 else H.m1;
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d); 
       return Ver pk (m', (c', d'))
@@ -303,12 +290,11 @@ local module MyTail'(A : AdvSNM) = {
   var c,c' : commitment
   var d,d' : openingkey
   proc main(b : bool, h : advice) = {
-    var pk, m', rs, md, m, rel;
+    var pk, m', md, m, rel;
     pk                 <$ Dpk;
     (md, rel)          <- A.init(pk,h);
     m                  <- if b then H.m2 else H.m1;
-    rs                 <$ rndstr;
-    (c, d)             <- Com pk rs m;
+    (c, d)             <$ Com pk m;
     c'                 <- A.commit(c, rel);
     (d', m')           <- A.decommit(d); 
       return (c,d) = (c',d');    
@@ -510,9 +496,26 @@ have H : (Pr[HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2] +
      (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')]) -
  1%r).
 apply obv. split.
-apply f1.
-apply f2.
-smt.
+apply f1. apply f2.
+have ->: (1%r / 2%r *
+(Pr[HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2] +
+ Pr[HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2] - 1%r) <=
+1%r / 2%r *
+(Pr[MyTail(H(A)).main(false, h) @ &m : res /\ H.m1 <> H.m2] +
+ Pr[MyTail(H(A)).main(false, h) @ &m :
+    (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] +
+ (Pr[MyTail(H(A)).main(true, h) @ &m : res /\ H.m1 <> H.m2] +
+  Pr[MyTail(H(A)).main(true, h) @ &m :
+     (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')]) -
+ 1%r)) = ((Pr[HEPT0(A).main() @ &m : res = false /\ HEP.m1 <> HEP.m2] +
+ Pr[HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2] - 1%r) <=
+(Pr[MyTail(H(A)).main(false, h) @ &m : res /\ H.m1 <> H.m2] +
+ Pr[MyTail(H(A)).main(false, h) @ &m :
+    (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')] +
+ (Pr[MyTail(H(A)).main(true, h) @ &m : res /\ H.m1 <> H.m2] +
+  Pr[MyTail(H(A)).main(true, h) @ &m :
+     (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')]) -
+ 1%r)). smt. apply H.
 qed.
 
 
@@ -555,77 +558,112 @@ qed.
 
 
 (* transformation of a hiding-adversary into unpredictability-adversary *)
-module HG(U : Unhider) = {
+module HU(U : Unhider) = {
   proc guess(pk : value) : message * (commitment * openingkey) list = {
-    var rs,m,m1,m2,c1,c2,d1,d2,b;
+    var m,m1,m2,c1,c2,d1,d2,b;
     (m1,m2) <@ U.choose(pk);
     b <$ {0,1};
     m <- if b then m2 else m1;
-    rs <$ rndstr;
-    (c1,d1) <- Com pk rs m1; 
-    (c2,d2) <- Com pk rs m2;     
+    (c1,d1) <$ Com pk m1; 
+    (c2,d2) <$ Com pk m2;     
     return (m , [(c1,d1); (c2,d2)]);
   }
 }.
 
 
-local module HG'(U : Unhider) = {
+local module HU'(U : Unhider) = {
   proc main() : bool = {
-    var rs,m,m1,m2,c1,c2,d1,d2,b;
-    var pk,c',d',rs0;
+    var m,m1,m2,c1,c2,d1,d2,b;
+    var pk,c,d;
     b <$ {0,1};
     pk <$ Dpk;
     (m1,m2) <@ U.choose(pk);
     m <- if b then m2 else m1;
-    rs <$ rndstr;
-    (c1,d1) <- Com pk rs m1; 
-    (c2,d2) <- Com pk rs m2;     
-    rs0 <$ rndstr;
-    (c', d') <- Com pk rs0 m;
-    return (c',d') \in ([(c1,d1); (c2,d2)]);
+    (c1,d1) <$ Com pk m1; 
+    (c2,d2) <$ Com pk m2;     
+    (c, d)  <$ Com pk m;
+    return (c, d) \in ([(c1,d1); (c2,d2)]);
   }
 }.
 
 
-
 local lemma guessprob &m h : 
  Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
-   + Pr[ MyTail(H(A)).main(true,h)  @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
-  <= Pr[ UnpredGame(HG(A)).main() @ &m : res ].
+ + Pr[ MyTail(H(A)).main(true,h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
+ <= Pr[ UnpredGame(HU(A)).main() @ &m : res ].
 proof.   
-have ->: 
- Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
-   + Pr[ MyTail(H(A)).main(true,h)  @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
- =     Pr[ W(MyTail(H(A))).main(h) @ &m :  (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ].    
-  have ->: Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
+have ->: Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r
+   + Pr[ MyTail(H(A)).main(true,h)  @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ] / 2%r =
+Pr[ W(MyTail(H(A))).main(h) @ &m :  (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ].    
+have ->: Pr[ MyTail(H(A)).main(false, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
    = Pr[ MyTail'(H(A)).main(false, h) @ &m : res ]. 
    byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} 
-     = res{2} ) =>//. proc. sim. 
-  have ->: Pr[ MyTail(H(A)).main(true, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
+     = res{2} ) =>//. proc. sim.
+have ->: Pr[ MyTail(H(A)).main(true, h) @ &m : (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
    = Pr[ MyTail'(H(A)).main(true, h) @ &m : res ]. 
    byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} 
-     = res{2} )=>//. proc. sim.   have ->: Pr[ W(MyTail(H(A))).main(h) @ &m :  (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
+     = res{2} )=>//. proc. sim.
+have ->: Pr[ W(MyTail(H(A))).main(h) @ &m :  (MyTail.c, MyTail.d) = (MyTail.c', MyTail.d') ]
    = Pr[ W(MyTail'(H(A))).main(h) @ &m :  res ].
-   byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} 
-     = res{2} ) =>//. proc.  inline*. wp.  simplify. sim.  
-rewrite (mysplitcases' &m h) =>//. 
-have ->: Pr[ UnpredGame(HG(A)).main() @ &m : res ]
- = Pr[ HG'(A).main() @ &m : res ].
-byequiv (_: ={glob A}  ==> _) =>//. proc.  inline*. swap {1} 4 -3.  wp. 
-rnd. wp.  rnd. wp.  call (_:true).  wp. rnd. rnd. skip. progress. 
-byequiv (_: ={glob A}  ==> _) =>//.
-proc. inline*. simplify. swap {2} [8..9] -3.
-wp. rnd. wp.  call {1} Ag_ll. wp. rnd. wp.
-call (_:true). wp.  rnd.  wp. rnd. skip. progress. 
-smt. smt. 
-qed.
+byequiv (_: ={glob A, glob H, glob MyTail, arg} ==> ((MyTail.c, MyTail.d) = (MyTail.c', MyTail.d')){1} = res{2}) =>//.
+proc.  inline*. wp.  simplify. sim.  
+rewrite (mysplitcases' &m h) =>//.
 
+have ->: Pr[ UnpredGame(HU(A)).main() @ &m : res ] = Pr[ HU'(A).main() @ &m : res ].
+byequiv (_: ={glob A}  ==> _) =>//. proc.  
+inline*. swap {1} 4 -3. 
+rnd. wp. rnd. rnd. wp. call(_:true). wp. rnd. rnd. skip. progress.
+   
+byequiv (_: ={glob A}  ==> _) =>//.
+proc. inline*. wp. 
+
+seq 8 3 : (={glob A, pk, b} /\ pk{2} \in Dpk /\
+   pk{1} \in Dpk /\ H.m1{1} = m1{2} /\ H.m2{1} = m2{2} /\
+   H.pk{1} = pk{1} /\ b{1} = m{1} /\ b{2} \in {0,1} /\ m{1} \in {0,1}).
+call(_:true). wp. rnd. wp. rnd. progress.  
+skip. progress. smt. smt. smt.   
+sp. swap {2} 3 -2. 
+case(b{2} = true). 
+   
+seq 4 1 : (m{2} = m2{2} /\
+  rel{1} = (fun (m1_0 m2_0 : message) => m1_0 = m2_0) /\
+  md{1} = duniform [H.m1{1}; H.m2{1}] /\
+  m0{1} = H.m2{1} /\
+  ={pk, b} /\ H.pk{1} = pk{1} /\ b{1} = m{1} /\
+  (pk{2} \in Dpk) /\ (pk{1} \in Dpk) /\ H.m1{1} = m1{2} /\ H.m2{1} = m2{2} /\
+  m0{1} = m{2} /\ (MyTail.c{1}, MyTail.d{1}) \in Com pk{1} m0{1} /\ (c{2}, d{2}) \in Com pk{2} m{2} /\
+  (MyTail.c{1}, MyTail.d{1}) = (c{2}, d{2}) /\ (b{2} \in {0,1}) /\ (m{1} \in {0,1}) /\ m0{1} = m{2} /\ H.b'{1} \in {0,1}).
+call{1} Ag_ll. wp. rnd. skip. progress. smt. smt. smt. 
+
+case(H.b'{1} = true).
+rnd. rnd{2}. simplify.  
+skip. progress. smt. 
+
+rnd{2}. rnd. skip. progress. smt. smt. smt. smt. 
+
+seq 4 1 : (m{2} = m1{2} /\
+  rel{1} = (fun (m1_0 m2_0 : message) => m1_0 = m2_0) /\
+  md{1} = duniform [H.m1{1}; H.m2{1}] /\
+  m0{1} = H.m1{1} /\
+  ={pk, b} /\ H.pk{1} = pk{1} /\ b{1} = m{1} /\
+  (pk{2} \in Dpk) /\ (pk{1} \in Dpk) /\ H.m1{1} = m1{2} /\ H.m2{1} = m2{2} /\
+  m0{1} = m{2} /\ (MyTail.c{1}, MyTail.d{1}) \in Com pk{1} m0{1} /\ (c{2}, d{2}) \in Com pk{2} m{2} /\
+  (MyTail.c{1}, MyTail.d{1}) = (c{2}, d{2}) /\ (b{2} \in {0,1}) /\ (m{1} \in {0,1}) /\ m0{1} = m{2} /\ H.b'{1} \in {0,1}).
+call{1} Ag_ll. wp. rnd. skip. progress. smt. smt. smt. smt. smt. 
+
+case(H.b'{1} = true).
+rnd. rnd{2}. simplify.  
+skip. progress. smt. 
+
+rnd{2}. rnd. skip. progress. smt. smt. smt. smt. 
+
+qed. 
 
 
 lemma snnm_pure_hiding1 &m h : forall (S <: Simulator {H, A}),
  (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(A)).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(A)).main() @ &m : res ]).
 proof. move => S.
 have q : 1%r/2%r * (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
@@ -650,9 +688,6 @@ module F(A : Unhider) = {
     return !r;
   }
 }.
-
-
-
 
 
 
@@ -700,7 +735,7 @@ op maxr (a b : real) = if a < b then b else a.
 local lemma snnm_pure_hiding2 &m h : forall (S <: Simulator {H, A}),
  (Pr[ HidingExperiment1(F(A)).main() @ &m : res ] - Pr[ HidingExperiment0(F(A)).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(F(A))).main(h) @ &m : res ] - Pr[ SG1(H(F(A)),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(F(A))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(F(A))).main() @ &m : res ]).
 proof. move => S.  
 have fa1 : phoare[ F(A).guess : true ==> true] = 1%r. 
 proc. call a1. auto.
@@ -726,23 +761,23 @@ lemma nsnm_pure_hiding_final &m h : forall (S <: Simulator {H, A}),
  `|Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]|
  <= maxr
       (2%r * (Pr[ SG0(H(F(A))).main(h) @ &m : res ] - Pr[ SG1(H(F(A)),S).main(h) @ &m : res ]
-        + Pr[ UnpredGame(HG(F(A))).main() @ &m : res ]))
+        + Pr[ UnpredGame(HU(F(A))).main() @ &m : res ]))
       (2%r * (Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
-        + Pr[ UnpredGame(HG(A)).main() @ &m : res ])).
+        + Pr[ UnpredGame(HU(A)).main() @ &m : res ])).
 proof. move => S.
 have a1 : `|Pr[ HidingExperiment1(F(A)).main() @ &m : res ] - Pr[ HidingExperiment0(F(A)).main() @ &m : res ]|
  <= maxr
       (2%r * (Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
-           + Pr[ UnpredGame(HG(A)).main() @ &m : res ]))
+           + Pr[ UnpredGame(HU(A)).main() @ &m : res ]))
       (2%r * (Pr[ SG0(H(F(A))).main(h) @ &m : res ] - Pr[ SG1(H(F(A)),S).main(h) @ &m : res ]
-           + Pr[ UnpredGame(HG(F(A))).main() @ &m : res ])). 
+           + Pr[ UnpredGame(HU(F(A))).main() @ &m : res ])). 
 have a2 : (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(A)).main(h) @ &m : res ] - Pr[ SG1(H(A),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(A)).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(A)).main() @ &m : res ]).
   apply (snnm_pure_hiding1 A a1 a2 a3 a4 a5 &m h S).     
     have b2 : (Pr[ HidingExperiment1(F(A)).main() @ &m : res ] - Pr[ HidingExperiment0(F(A)).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(F(A))).main(h) @ &m : res ] - Pr[ SG1(H(F(A)),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(F(A))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(F(A))).main() @ &m : res ]).
   apply (snnm_pure_hiding2 &m h S). 
 smt. smt.
 qed.

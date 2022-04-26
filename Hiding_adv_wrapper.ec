@@ -67,7 +67,22 @@ local lemma h1 &m:
 proof. 
 byphoare =>//. proc. inline*. wp. rnd. call(_:true). 
 apply Ag_ll. wp. rnd. wp. call(_:true). apply Ac_ll. 
-wp. rnd. skip. progress. smt. 
+wp. rnd. skip. progress.   
+have ->: (mu Dpk
+  (fun (x : value) =>
+     forall (result : message * message),
+       (result.`1 <>
+        (if result.`1 = result.`2 then diff x result.`2 else result.`2) /\
+        weight {0,1} = 1%r) /\
+       weight (Com x result.`1) = 1%r) =
+1%r) = (mu Dpk
+  (fun (x : value) =>
+     forall (result : message * message),
+       (result.`1 <>
+        (if result.`1 = result.`2 then diff x result.`2 else result.`2) /\
+        true) /\ true) =
+1%r). smt. progress.
+smt. 
 qed.
 
 local lemma h2 &m:
@@ -75,7 +90,20 @@ local lemma h2 &m:
 proof. 
 byphoare =>//. proc. inline*. wp. rnd. call(_:true). 
 apply Ag_ll. wp. rnd. wp. call(_:true). apply Ac_ll. 
-wp. rnd. skip. progress. smt. 
+wp. rnd. skip. progress.
+have ->: (mu Dpk
+  (fun (x : value) =>
+     forall (result : message * message),
+       (result.`1 <>
+        (if result.`1 = result.`2 then diff x result.`2 else result.`2) /\
+        weight {0,1} = 1%r) /\
+       weight
+         (Com x
+           (if result.`1 = result.`2 then diff x result.`2 else result.`2)) = 1%r) = 1%r) =
+(mu Dpk  (fun (x : value) => forall (result : message * message),
+       (result.`1 <> (if result.`1 = result.`2 then diff x result.`2 else result.`2) /\
+        true) /\ true) =
+1%r). smt. smt. 
 qed.
 
 (* HEPT0 and HEPT1 equal when m1 = m2 *)
@@ -83,34 +111,35 @@ local lemma eq1 &m:
    Pr[ HEPT0(A).main() @ &m : res /\ HEP.m1 = HEP.m2 ] <=
    Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 = HEP.m2 ].
 proof.
-byequiv =>//. proc. 
-call (_: ={HEP.m1,HEP.m2, glob A} /\ HEPT0.x{1} = HEPT1.x{2} /\ HEPT0.r{1} = HEPT1.r{2}
- /\ arg{1} = (Com HEPT0.x{1} HEPT0.r{1} HEP.m1{1}).`1 /\ arg{2} = (Com HEPT1.x{2} HEPT1.r{2} HEP.m2{2}).`1 ==>
- (HEP.m1{1} = HEP.m2{1} => ={res}) ).  
-proc*.
-case (HEP.m1{1} = HEP.m2{1}). 
-call (_:true). skip. progress.
-call{1} Ag_ll. call{2} Ag_ll. 
-skip. progress. auto. 
-wp. rnd. call (_:true). rnd.
-skip. progress. rewrite -H3. apply H5. apply H4. 
-qed. 
+byequiv =>//. proc.
+seq 2 2 : (={glob A, HEP.m1, HEP.m2} /\ HEPT0.x{1} = HEPT1.x{2}). 
+call(_:true). rnd. skip. progress. 
+case (HEP.m1{1} = HEP.m2{2}).
+call(_:true). rnd. 
+skip. progress. 
+
+call{1} Ag_ll. call{2} Ag_ll. rnd{1}. rnd{2}.  
+skip. progress. 
+smt. smt. smt.  
+qed.
+
 
 local lemma eq2 &m:
   Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 = HEP.m2 ] <=
   Pr[ HEPT0(A).main() @ &m : res /\ HEP.m1 = HEP.m2 ].
-proof. byequiv=>//. proc. symmetry.   
-call (_: ={HEP.m1,HEP.m2, glob A} /\ HEPT0.x{1} = HEPT1.x{2} /\ HEPT0.r{1} = HEPT1.r{2}
- /\ arg{1} = (Com HEPT0.x{1} HEPT0.r{1} HEP.m1{1}).`1 /\ arg{2} = (Com HEPT1.x{2} HEPT1.r{2} HEP.m2{2}).`1 ==>
- (HEP.m1{1} = HEP.m2{1} => ={res}) ).  
-proc*.
-case (HEP.m1{1} = HEP.m2{1}). 
-call (_:true). skip. progress.
-call {1} Ag_ll. call {2} Ag_ll.
-skip. progress. auto. 
-wp. rnd. call (_:true). rnd.
-skip. progress. rewrite H3. apply H5. apply H4.
+proof.
+byequiv=>//. proc. symmetry.   
+seq 2 2 : (={glob A, HEP.m1, HEP.m2} /\ HEPT0.x{1} = HEPT1.x{2}). 
+call(_:true). rnd. skip. progress. 
+case (HEP.m1{1} = HEP.m2{2}).
+call(_:true). rnd. 
+skip. progress. 
+
+call{1} Ag_ll. call{2} Ag_ll. rnd{1}. rnd{2}.  
+skip. progress. 
+smt. smt. smt.  
 qed.
+
 
 local lemma eq &m:
    Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 = HEP.m2 ] =
@@ -130,39 +159,48 @@ local lemma f1 &m:
 proof. 
 byequiv =>//. proc. inline*.
 wp. rnd. call {1} Ag_ll. call {2} Ag_ll. 
-wp.  rnd.  wp. call (_:true). wp. rnd.
-skip. progress. 
+wp. rnd{1}. rnd{2}.  wp. call (_:true). wp. rnd.
+skip. progress. smt. smt. 
 qed.
 
 local lemma f2 &m:
   Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2 ] <= Pr[ HEPT1(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ].
 proof. 
 byequiv =>//.
-proc. inline*. wp. rnd{2}. 
-seq 4 7 : (HEP.m1{1} <> HEP.m2{1} => ={c,d, glob A, HEP.m1, HEP.m2, HEPT1.x, HEPT1.r} /\ U'.m1{2} = HEP.m1{1} /\ U'.m2{2} = HEP.m2{1}).
-wp.  rnd.  wp.  call (_:true). wp.  rnd.
-skip. progress. smt.  smt. smt.
-call (_: (HEP.m1{1} <> HEP.m2{1} => ={c, glob A, HEP.m1, HEP.m2, HEPT1.x, HEPT1.r} /\ U'.m1{2} <> U'.m2{2} /\ U'.m1{2} = HEP.m1{1} /\ U'.m2{2} = HEP.m2{1})
-==> HEP.m1{1} <> HEP.m2{1} => ={res} /\ U'.m1{2} <> U'.m2{2}).   
-proc*. case (HEP.m1{1} <> HEP.m2{1}).
-call (_:true). skip. smt.
-call{1} Ag_ll. call{2} Ag_ll. skip. progress. wp. skip. smt.
+proc. inline*.
+wp. rnd{2}. sp.
+seq 2 5 : (HEP.m1{1} <> HEP.m2{1} => ={glob A, HEP.m1, HEP.m2, HEPT1.x} /\ U'.m1{2} = HEP.m1{1} /\ U'.m2{2} = HEP.m2{1}).
+wp. call (_:true). wp.  rnd.
+skip. progress.  smt.      
+
+case (HEP.m1{1} <> HEP.m2{1}).
+call (_:true). wp. rnd.  
+skip. progress. smt. smt. smt. smt. smt. 
+simplify. 
+call{1} Ag_ll. call{2} Ag_ll. wp. rnd{1}. rnd{2}.   
+skip. progress. smt. smt. 
 qed.
+
 
 local lemma f3 &m:
   Pr[ HEPT1(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ] <= Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2 ].
 proof. 
 byequiv =>//.
-proc. inline*. wp. rnd{1}. 
-seq 7 4 : ( U'.m1{1} <> U'.m2{1} => ={glob A, c, d, HEP.m1, HEP.m2, HEPT1.x, HEPT1.r} /\ U'.m1{1} = HEP.m1{2} /\ U'.m2{1} = HEP.m2{2}).
-wp.  rnd.  wp.  call (_:true). wp.  rnd.
-skip. progress. smt.  smt. smt. sp. 
-call (_:  U'.m1{1} <> U'.m2{1} => ={glob A, c, HEP.m1, HEP.m2, HEPT1.x, HEPT1.r} /\ U'.m1{1} <> U'.m2{1} /\ U'.m1{1} = HEP.m1{2} /\ U'.m2{1} = HEP.m2{2} ==> (U'.m1{1} <> U'.m2{1} => ={res}) ).
-proc*. case (U'.m1{1} <> U'.m2{1}). call (_:true). skip. smt.
-conseq (_: _ ==> true). smt.
-call{1} Ag_ll. call{2} Ag_ll. skip. smt. 
-skip. smt. 
+proc. inline*.
+wp. rnd{1}. sp.
+seq 5 2 : ( U'.m1{1} <> U'.m2{1} => ={glob A, HEP.m1, HEP.m2, HEPT1.x} /\ U'.m1{1} = HEP.m1{2} /\ U'.m2{1} = HEP.m2{2}).
+wp. call (_:true). wp. rnd.
+skip. progress.  smt.      
+
+case (U'.m1{1} <> U'.m2{1}).
+call (_:true). wp. rnd.  
+skip. progress. smt. smt. smt. smt. smt. 
+simplify. 
+call{1} Ag_ll. call{2} Ag_ll. wp. rnd{1}. rnd{2}.   
+skip. progress. smt. smt. 
 qed.
+
+
 
 local lemma f4 &m:
   Pr[ HEPT1(A).main() @ &m : res /\ HEP.m1 <> HEP.m2 ] = Pr[ HEPT1(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ].
@@ -172,35 +210,43 @@ have a2 : Pr[ HEPT1(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ] <= Pr[ HEPT1(A)
 smt.
 qed. 
 
+
 local lemma k2 &m:
   Pr[ HEPT0(A).main() @ &m : res /\ HEP.m1 <> HEP.m2 ] <= Pr[ HEPT0(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ].
 proof. 
 byequiv =>//.
 proc. inline*. wp. rnd{2}. 
-seq 4 7 : (HEP.m1{1} <> HEP.m2{1} => ={c,d, glob A, HEP.m1, HEP.m2, HEPT0.x, HEPT0.r} /\ U'.m1{2} = HEP.m1{1} /\ U'.m2{2} = HEP.m2{1}).
-wp.  rnd.  wp.  call (_:true). wp.  rnd.
-skip. progress. smt. sp.
-call (_: (HEP.m1{1} <> HEP.m2{1} => ={c, glob A, HEP.m1, HEP.m2, HEPT0.x, HEPT0.r} /\ U'.m1{2} <> U'.m2{2} /\ U'.m1{2} = HEP.m1{1} /\ U'.m2{2} = HEP.m2{1})
-==> HEP.m1{1} <> HEP.m2{1} => ={res} /\ U'.m1{2} <> U'.m2{2}).   
-proc*. case (HEP.m1{1} <> HEP.m2{1}).
-call (_:true). skip. smt.
-call{1} Ag_ll. call{2} Ag_ll. skip. progress. skip. smt.
+seq 2 5 : (HEP.m1{1} <> HEP.m2{1} => ={glob A, HEP.m1, HEP.m2, HEPT0.x} /\ U'.m1{2} = HEP.m1{1} /\ U'.m2{2} = HEP.m2{1}).
+wp. call (_:true). wp.  rnd.
+skip. progress.  smt.  
+
+case (HEP.m1{1} <> HEP.m2{1}).
+call(_:true). wp.  rnd. 
+skip. progress.  smt. smt. smt. smt. smt. 
+
+simplify. 
+call{1} Ag_ll. call{2} Ag_ll. wp. rnd{1}. rnd{2}.   
+skip. progress. smt. smt. 
 qed.
+
 
 local lemma k3 &m:
   Pr[ HEPT0(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ] <= Pr[ HEPT0(A).main() @ &m : res /\ HEP.m1 <> HEP.m2 ].
 proof. 
 byequiv =>//.
 proc. inline*. wp. rnd{1}. 
-seq 7 4 : ( U'.m1{1} <> U'.m2{1} => ={glob A, c, d, HEP.m1, HEP.m2, HEPT0.x, HEPT0.r} /\ U'.m1{1} = HEP.m1{2} /\ U'.m2{1} = HEP.m2{2}).
-wp.  rnd.  wp.  call (_:true). wp.  rnd.
-skip. progress. smt. sp. 
-call (_:  U'.m1{1} <> U'.m2{1} => ={glob A, c, HEP.m1, HEP.m2, HEPT0.x, HEPT0.r} /\ U'.m1{1} <> U'.m2{1} /\ U'.m1{1} = HEP.m1{2} /\ U'.m2{1} = HEP.m2{2} ==> (U'.m1{1} <> U'.m2{1} => ={res}) ).
-proc*. case (U'.m1{1} <> U'.m2{1}). call (_:true). skip. smt.
-conseq (_: _ ==> true). smt.
-call{1} Ag_ll. call{2} Ag_ll. skip. smt. 
-skip. smt. 
+seq 5 2 : ( U'.m1{1} <> U'.m2{1} => ={glob A, HEP.m1, HEP.m2, HEPT0.x} /\ U'.m1{1} = HEP.m1{2} /\ U'.m2{1} = HEP.m2{2}).
+wp. call (_:true). wp. rnd.
+skip. progress.  smt.      
+
+case (U'.m1{1} <> U'.m2{1}).
+call (_:true). wp. rnd.  
+skip. progress. smt. smt. smt. smt. smt. 
+simplify. 
+call{1} Ag_ll. call{2} Ag_ll. wp. rnd{1}. rnd{2}.   
+skip. progress. smt. smt. 
 qed.
+
 
 local lemma k4 &m:
   Pr[ HEPT0(A).main() @ &m : res /\ HEP.m1 <> HEP.m2 ] = Pr[ HEPT0(U'(A)).main() @ &m : res /\ U'.m1 <> U'.m2 ].
@@ -219,16 +265,16 @@ byequiv =>//.
 proc. inline*.
 wp. rnd. call {1} Ag_ll. 
 call {2} Ag_ll. 
-wp.  rnd.  wp. call (_:true). wp. rnd.
-skip. progress. smt.  smt. 
+wp.  rnd{1}. rnd{2}. wp. call (_:true). wp. rnd.
+skip. progress. smt.  smt. smt.  smt. 
 have a2 : Pr[ HEPT1(U'(A)).main() @ &m : res /\ U'.m1 = U'.m2 ] >= Pr[ HEPT0(U'(A)).main() @ &m : res /\ U'.m1 = U'.m2 ].
 byequiv =>//.
 proc. inline*.
 wp. rnd. call {1} Ag_ll. 
-call {2} Ag_ll. 
-wp.  rnd.  wp. call (_:true). wp. rnd.
-skip. progress. smt. smt.  
-smt. 
+call {2} Ag_ll.  
+wp.  rnd{1}. rnd{2}.  wp. call (_:true). wp. rnd.
+skip. progress. smt. smt.  smt. 
+smt. smt. 
 qed.
 
 
