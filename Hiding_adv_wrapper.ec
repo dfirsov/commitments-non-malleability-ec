@@ -352,7 +352,7 @@ qed.
 local lemma snnm_pure_hiding2 &m h : forall (S <: Simulator {H, A, U'}),
  (Pr[ HidingExperiment1(U'(A)).main() @ &m : res ] - Pr[ HidingExperiment0(U'(A)).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(U'(A))).main(h) @ &m : res ] - Pr[ SG1(H(U'(A)),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(U'(A))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(U'(A))).main() @ &m : res ]).
 proof. 
 apply (snnm_pure_hiding1 (U'(A)) Ag_ll1 Ac_ll1 h1 h2 hh0 &m h).
 qed.
@@ -362,11 +362,11 @@ qed.
 local lemma snnm_pure_hiding_f &m h : forall (S <: Simulator {H, A, U'}),
  (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(U'(A))).main(h) @ &m : res ] - Pr[ SG1(H(U'(A)),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(U'(A))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(U'(A))).main() @ &m : res ]).
 proof. progress. 
 have :  (Pr[ HidingExperiment1(U'(A)).main() @ &m : res ] - Pr[ HidingExperiment0(U'(A)).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(U'(A))).main(h) @ &m : res ] - Pr[ SG1(H(U'(A)),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(U'(A))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(U'(A))).main() @ &m : res ]).
 apply (snnm_pure_hiding1 (U'(A)) Ag_ll1 Ac_ll1 h1 h2 hh0 &m h S). progress.
 have : (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) <=
 (Pr[ HidingExperiment1(U'(A)).main() @ &m : res ] - Pr[ HidingExperiment0(U'(A)).main() @ &m : res ]).
@@ -405,7 +405,7 @@ qed.
 local lemma snnm_pure_hiding3 &m h : forall (S <: Simulator {H, A, U'}),
  (Pr[ HidingExperiment1(F(U'(A))).main() @ &m : res ] - Pr[ HidingExperiment0(F(U'(A))).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(F(U'(A)))).main(h) @ &m : res ] - Pr[ SG1(H(F(U'(A))),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(F(U'(A)))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(F(U'(A)))).main() @ &m : res ]).
 proof. move => S.  
 have a1 : phoare[ F(U'(A)).guess : true ==> true] = 1%r. 
 proc. call Ag_ll1. auto.
@@ -428,9 +428,9 @@ local lemma nsnm_pure_hiding_f' &m h : forall (S <: Simulator {H, A, U'}),
  `|Pr[ HidingExperiment1(U'(A)).main() @ &m : res ] - Pr[ HidingExperiment0(U'(A)).main() @ &m : res ]|
  <= maxr
       (2%r * (Pr[ SG0(H(F(U'(A)))).main(h) @ &m : res ] - Pr[ SG1(H(F(U'(A))),S).main(h) @ &m : res ]
-        + Pr[ UnpredGame(HG(F(U'(A)))).main() @ &m : res ]))
+        + Pr[ UnpredGame(HU(F(U'(A)))).main() @ &m : res ]))
       (2%r * (Pr[ SG0(H(U'(A))).main(h) @ &m : res ] - Pr[ SG1(H(U'(A)),S).main(h) @ &m : res ]
-        + Pr[ UnpredGame(HG(U'(A))).main() @ &m : res ])).
+        + Pr[ UnpredGame(HU(U'(A))).main() @ &m : res ])).
 proof. progress. 
 apply (nsnm_pure_hiding_final (U'(A)) Ag_ll1 Ac_ll1 h1 h2 hh0 &m h S).
 qed.
@@ -441,17 +441,17 @@ lemma nsnm_pure_hiding_final2 &m h : forall (S <: Simulator {H, A, U'}),
  `|Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]|
  <= maxr
       (2%r * (Pr[ SG0(H(F(U'(A)))).main(h) @ &m : res ] - Pr[ SG1(H(F(U'(A))),S).main(h) @ &m : res ]
-        + Pr[ UnpredGame(HG(F(U'(A)))).main() @ &m : res ]))
+        + Pr[ UnpredGame(HU(F(U'(A)))).main() @ &m : res ]))
       (2%r * (Pr[ SG0(H(U'(A))).main(h) @ &m : res ] - Pr[ SG1(H(U'(A)),S).main(h) @ &m : res ]
-        + Pr[ UnpredGame(HG(U'(A))).main() @ &m : res ])).
+        + Pr[ UnpredGame(HU(U'(A))).main() @ &m : res ])).
 proof. progress.
 have a1 : (Pr[ HidingExperiment1(U'(A)).main() @ &m : res ] - Pr[ HidingExperiment0(U'(A)).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(U'(A))).main(h) @ &m : res ] - Pr[ SG1(H(U'(A)),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(U'(A))).main() @ &m : res ]).
+ + Pr[ UnpredGame(HU(U'(A))).main() @ &m : res ]).
   apply (snnm_pure_hiding1 (U'(A)) Ag_ll1 Ac_ll1 h1 h2 hh0 &m h S).     
 have a2 : (Pr[ HidingExperiment1(F(U'(A))).main() @ &m : res ] - Pr[ HidingExperiment0(F(U'(A))).main() @ &m : res ]) 
  <= 2%r * (Pr[ SG0(H(F(U'(A)))).main(h) @ &m : res ] - Pr[ SG1(H(F(U'(A))),S).main(h) @ &m : res ]
- + Pr[ UnpredGame(HG(F(U'(A)))).main() @ &m : res ]). apply (snnm_pure_hiding3 &m h S).  
+ + Pr[ UnpredGame(HU(F(U'(A)))).main() @ &m : res ]). apply (snnm_pure_hiding3 &m h S).  
 have h3 : (Pr[ HidingExperiment1(A).main() @ &m : res ] - Pr[ HidingExperiment0(A).main() @ &m : res ]) <=
   (Pr[ HidingExperiment1(U'(A)).main() @ &m : res ] - Pr[ HidingExperiment0(U'(A)).main() @ &m : res ]). apply h3. 
 have h4 :  (Pr[ HidingExperiment0(A).main() @ &m : res ] - Pr[ HidingExperiment1(A).main() @ &m : res ]) <=

@@ -105,11 +105,11 @@ module G0(A : AdvSNM) = {
 
 module G1(A : AdvSNM, S : Simulator) = {
   proc main(h : advice) : bool = {
-    var pk, m, c', d', m', md, mrel;    
+    var pk, m, m', md, mrel;    
     pk                 <$ Dpk; 
     (md, mrel)         <- A.init(pk,h);
     m                  <$ md;
-    (m', c',  d')      <- S.simulate(pk, mrel, md);
+    m'                 <- S.simulate(pk, mrel, md);
     return mrel m m';
   }
 }.

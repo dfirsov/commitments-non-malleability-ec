@@ -146,11 +146,11 @@ local module SNM_G0'(A : AdvSNM) = {
 
 local module SNM_G1'(A : AdvSNM, S : Simulator) = {
   proc main(h : advice) : bool = {
-    var pk, m, c', d', m', md, rel;    
+    var pk, m, m', md, rel;    
     pk                 <$ Dpk; 
     (md, rel)          <- A.init(pk, h);
     m                  <$ md;
-    (m', c',  d')      <- S.simulate(pk, rel, md);
+    m'                 <- S.simulate(pk, rel, md);
     return rel m m';
   }
 }.

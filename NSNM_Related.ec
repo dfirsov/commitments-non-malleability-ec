@@ -45,10 +45,10 @@ module C_SEG0(CS:CommitmentScheme, A : AdvSNM) = {
 }.
 module C_SEG1(CS:CommitmentScheme, S : Simulator) = {
   proc main(rel : snm_relation, md : message distr) : bool = {
-    var m,m',pk,c,d;    
+    var m,m',pk;    
     pk                 <- CS.gen(); 
     m                  <$ md;
-    (m',c,d)           <- S.simulate(pk, rel, md);
+    m'           <- S.simulate(pk, rel, md);
     return rel m m';
   }
 }.
@@ -128,10 +128,10 @@ module A_SEG0(A : AdvSNM) = {
 
 module A_SEG1(S : Simulator) = {
   proc main(rel : snm_relation, md : message distr) : bool = {
-    var m,m',pk,c,d;    
+    var m,m',pk;    
     pk                 <$ Dpk; 
     m                  <$ md;
-    (m',c,d)           <- S.simulate(pk, rel, md);
+    m'                 <- S.simulate(pk, rel, md);
     return rel m m' /\ m <> m';
   }
 }.

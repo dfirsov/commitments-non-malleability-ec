@@ -12,9 +12,9 @@ type message.
 require NSNM_Related.
 
 clone import NSNM_Related as NSNM_rel  with type value     <- unit,
-                                           type message    <- message,
-                                           type commitment <- unit,
-                                           type openingkey <- message.
+                                            type message    <- message,
+                                            type commitment <- unit,
+                                            type openingkey <- message.
 
 
 

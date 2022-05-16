@@ -101,11 +101,11 @@ module SNM_ROM_G0(CS:CommitmentScheme, A : AdvSNM) = {
 module SNM_ROM_G1(CS:CommitmentScheme, A : AdvSNM, S : Simulator) = {
   var  m, m' : message
   proc main(h : advice) : bool = {
-    var pk,c,d, ssnmdistr, rel;    
+    var pk, ssnmdistr, rel;    
     pk                 <- CS.gen(); 
     (ssnmdistr, rel)   <- A.init(pk, h);
     m                  <$ ssnmdistr;
-    (m',c,d)           <- S.simulate(pk, rel, ssnmdistr);
+    m'                 <- S.simulate(pk, rel, ssnmdistr);
     return rel m m';
   }
 }.
@@ -532,7 +532,7 @@ local module MySim = {
     c'   <- B.commit(c, rel);
     G1'.mm <- LRO.m;
     (d', m') <- (head witness (solve G1'.mm c'));
-    return (m',c',d');
+    return m';
   }
 }.
 
